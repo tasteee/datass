@@ -1,1 +1,1 @@
-export { sum } from "./sum";
+export { datass } from './datass'
