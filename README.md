@@ -5,6 +5,36 @@
 
 its lightweight, flexible, and unopinionated. if ur feeling like switching it up, u should give datass a shot.
 
+### Jokes aside...
+
+datass is a state management library for React that experimentally focuses on minimizing re-renders.
+
+Selectors are cached and even when a store's state changes a datass store hook will only cause
+a component to re-render if the result of the selector is different from the previous result.
+
+Consider this:
+
+```ts
+// We create a store with an array of numbers.
+const $numbers = datass.array([1, 2, 3, 4, 5])
+
+// We hook into the store inside of a component using
+// a hook/selector that filters out any odd numbers.
+// The result here is [2, 4].
+const evenNumbers = $numbers.useFilter((number) => number % 2 === 0)
+
+// We then update the store with a new set of numbers, but
+// we leave out any odd numbers.
+$numbers.set([2, 4])
+```
+
+In the case above, the hook into $numbers will not cause a re-render
+because the resulting length and values of the array produced by the selector
+applied to [2, 4] is the same resulting length and values of the array produced by the
+selector applied to [1, 2, 3, 4, 5].
+
+### TODO: Thorough documentation.
+
 ```ts
 import { datass } from 'datass'
 
