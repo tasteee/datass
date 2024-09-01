@@ -1,6 +1,6 @@
 {
 	"name": "datass",
-	"version": "0.0.1",
+	"version": "0.0.11",
 	"author": {
 		"name": "rokki",
 		"email": "tasteink@proton.me",
@@ -27,8 +27,7 @@
 	},
 	"scripts": {
 		"dev": "vite --host",
-		"prebuild": "rm -rf dist/*",
-		"build": "tsc && vite build",
+		"build": "vite build",
 		"postbuild": "dts-bundle-generator --config ./dts-bundle-generator.config.ts",
 		"test": "vitest",
 		"test:coverage": "vitest --coverage",
@@ -75,18 +74,18 @@
 	},
 	"typings": "./dist/datass.d.ts",
 	"devDependencies": {
-		"react": "^18.0.0",
-		"react-dom": "^18.0.0",
-		"@types/react": "^18.0.0",
-		"@types/react-dom": "^18.0.0",
 		"@types/jsdom": "^21.1.7",
 		"@types/node": "^22.5.0",
+		"@types/react": "^18.0.0",
+		"@types/react-dom": "^18.0.0",
 		"@vitest/coverage-v8": "^2.0.5",
 		"dts-bundle-generator": "^9.5.1",
 		"jsdom": "^24.1.1",
 		"lint-staged": "^15.2.9",
 		"np": "^10.0.6",
 		"prettier": "^3.3.3",
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0",
 		"terser": "^5.31.1",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.3.3",
@@ -97,5 +96,8 @@
 	"peerDependencies": {
 		"react": "^18.0.0",
 		"react-dom": "^18.0.0"
+	},
+	"dependencies": {
+		"just-safe-get": "^4.2.0"
 	}
 }
