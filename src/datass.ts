@@ -1,5 +1,10 @@
-import { useState, useEffect, useId } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import safeGet from 'just-safe-get'
+import { nanoid } from 'nanoid'
+
+const useId = () => {
+	return useMemo(() => nanoid(), [])
+}
 
 type SubscriberT = {
 	id: string
