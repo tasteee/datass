@@ -114,6 +114,12 @@ type GetFinalStoreOptionsT = {
   [key: string]: any
 }
 
+type EventTargetWithValue = EventTarget & { value: any }
+
+interface EventWithTargetValue extends Event {
+  target: EventTargetWithValue;
+}
+
 const getFinalStore = (options: GetFinalStoreOptionsT) => {
   const { internals, ...rest } = options
 
@@ -123,10 +129,16 @@ const getFinalStore = (options: GetFinalStoreOptionsT) => {
     datMainAss.stores.set(name, datassAssociation)
   }
 
+  const setFromEvent = (event: EventWithTargetValue | any) => {
+    const target = (event?.target || { value: '' }) as any
+    internals.replaceState(target.value)
+  }
+
   return {
     identify,
     use: internals.use,
     set: internals.replaceState,
+    setFromEvent,
     ...rest,
     get state() {
       return internals.state
@@ -245,7 +257,9 @@ type DatassStoreT<T> = {
     (): T
     <T>(selector: (state: T) => any): any
   }
+
   set: (newState: T) => void
+  setFromEvent: (event: EventWithTargetValue) => void
   identify: (name: string) => void
   state: T
 }
@@ -261,3 +275,10 @@ export const datass = {
   array: datArray,
   object: datObject,
 }
+
+// const foo = datass.string('a')
+
+// const input = document.createElement('input')
+// input.addEventListener('change', event => {
+//   foo.setFromEvent(event)
+// })
