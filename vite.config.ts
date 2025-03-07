@@ -37,7 +37,11 @@ export default defineConfig({
         terserOptions: {
             keep_classnames: true,
             keep_fnames: true,
+            format: {
+                comments: "all"
+            }
         },
+        
         rollupOptions: {
             external: ['react', 'react-dom'], // Prevent bundling React
             output: {

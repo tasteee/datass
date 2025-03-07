@@ -1,3 +1,4 @@
+//-- DATASS v0.0.6
 import { useState, useEffect, useMemo } from "react"
 import safeGet from "just-safe-get"
 import { nanoid } from "nanoid"
@@ -120,31 +121,32 @@ interface EventWithTargetValue extends Event {
   target: EventTargetWithValue;
 }
 
-const getFinalStore = (options: GetFinalStoreOptionsT) => {
-  const { internals, ...rest } = options
+const getFinalStore = <T>(options: GetFinalStoreOptionsT): DatassStoreT<T> => {
+  const { internals, ...rest } = options;
 
   const identify = (name: string) => {
-    const datassAssociation = datMainAss.stores.get(internals.id)
-    datMainAss.stores.delete(internals.id)
-    datMainAss.stores.set(name, datassAssociation)
-  }
+    const datassAssociation = datMainAss.stores.get(internals.id);
+    datMainAss.stores.delete(internals.id);
+    datMainAss.stores.set(name, datassAssociation);
+  };
 
   const setFromEvent = (event: EventWithTargetValue | any) => {
-    const target = (event?.target || { value: '' }) as any
-    internals.replaceState(target.value)
-  }
+    const target = (event?.target || { value: "" }) as any;
+    internals.replaceState(target.value);
+  };
 
   return {
     identify,
     use: internals.use,
     set: internals.replaceState,
-    setFromEvent,
+    setFromEvent, // Ensure this is included
     ...rest,
     get state() {
-      return internals.state
+      return internals.state;
     },
-  }
-}
+  };
+};
+
 
 const datNumber = (initialState: number) => {
   const internals = createInternals(initialState)
