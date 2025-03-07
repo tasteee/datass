@@ -37,7 +37,16 @@ export default defineConfig({
         terserOptions: {
             keep_classnames: true,
             keep_fnames: true,
-        }
+        },
+        rollupOptions: {
+            external: ['react', 'react-dom'], // Prevent bundling React
+            output: {
+                globals: {
+                    react: 'React',
+                    'react-dom': 'ReactDOM',
+                },
+            },
+        },
     },
     test: {
         globals: true,
