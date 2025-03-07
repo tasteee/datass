@@ -1,7 +1,7 @@
-//-- DATASS v0.0.6
 import { useState, useEffect, useMemo } from "react"
 import safeGet from "just-safe-get"
 import { nanoid } from "nanoid"
+//! DATASS v0.0.7
 
 const useId = () => {
   return useMemo(() => nanoid(), [])

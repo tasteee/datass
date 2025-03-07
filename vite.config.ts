@@ -38,8 +38,9 @@ export default defineConfig({
             keep_classnames: true,
             keep_fnames: true,
             format: {
-                comments: "all"
-            }
+                comments: /^!/
+              }
+              
         },
         
         rollupOptions: {
