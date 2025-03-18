@@ -7,7 +7,64 @@ its lightweight, flexible, and unopinionated. if ur feeling like switching it up
 
 ### Jokes aside...
 
-datass is a state management library for React that experimentally focuses on minimizing re-renders.
+datass is a state management library for React that focuses on developer experience. It is simple
+as fuck, it is flexible, and it is super lightweight.
+
+## Install
+
+Choose your poison.
+
+```bash
+npm i datass
+```
+
+```bash
+yarn add datass
+```
+
+```bash
+bun install datass
+```
+
+## Import
+
+```ts
+import { datass } from 'datass'
+```
+
+## Usage
+
+```ts
+const name = datass.string('lilith')
+const age = datass.number(25)
+const isFun = datass.boolean(true)
+const favoriteColors = datass.array<string>(['green', 'yellow'])
+const friend = datass.object({ name: 'hannah', isBest: false })
+
+const MyComponent0 = () => {
+    name.use()
+    return <p>Name: {name.state}</p>
+}
+
+const MyComponent1 = () => {
+    age.use()
+    return <p>Age: {age.state}</p>
+}
+
+const MyComponent2 = () => {
+    const isSheFun = isFun.use()
+    const text = isShefun ? 'yup' : 'meh'
+    return <p>She fun? {text}</p>
+}
+
+const MyComponent3 = () => {
+    const gColors = favoriteColors.useFilter(color => color.startsWith('g'))
+    return <p>G Colors: {gColors.map(color => <span>{color}</span>)</p>
+}
+
+```
+
+## OLD DOCS -- THIS SHI IS A WORK IN PROGRESS.
 
 Selectors are cached and even when a store's state changes a datass store hook will only cause
 a component to re-render if the result of the selector is different from the previous result.
