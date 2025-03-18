@@ -1,286 +1,316 @@
-import { useState, useEffect, useMemo } from "react"
-import safeGet from "just-safe-get"
-import { nanoid } from "nanoid"
-//! DATASS v0.0.7
+import { useState, useEffect, useMemo } from 'react'
+import safeGet from 'just-safe-get'
+import { nanoid } from 'nanoid'
 
 const useId = () => {
-  return useMemo(() => nanoid(), [])
+ return useMemo(() => nanoid(), [])
 }
 
 type SubscriberT = {
-  id: string
-  update: (newState: any) => void
-  derive?: (newState: any) => any
-  previousValue: any
+ id: string
+ update: (newState: any) => void
+ derive?: (newState: any) => any
+ previousValue: any
 }
 
 const datMainAss = {
-  stores: new Map(),
+ stores: new Map()
 }
 
 function createInternals<T>(initialState: T) {
-  const internals: InternalsT<T> = {
-    id: datMainAss.stores.size,
-    currentState: initialState,
-    previousState: null,
-    subscribers: new Map(),
+ const internals: InternalsT<T> = {
+  id: datMainAss.stores.size,
+  currentState: initialState,
+  previousState: null,
+  subscribers: new Map(),
+  get state() {
+   return internals.currentState
+  },
+  use(selector?: (state: T) => any) {
+   const id = useId()
+   const initialValue = selector ? selector(internals.state) : internals.state
+   const [value, setValue] = useState(initialValue)
 
-    get state() {
-      return internals.currentState
-    },
+   useEffect(() => {
+    return internals.subscribe({
+     derive: selector,
+     previousValue: value,
+     update: setValue,
+     id
+    })
+   }, [id, selector])
 
-    use(selector?: (state: T) => any) {
-      const id = useId()
+   return value
+  },
+  unsubscribe(id: string) {
+   internals.subscribers.delete(id)
+  },
+  subscribe(subscriber: SubscriberT) {
+   internals.subscribers.set(subscriber.id, subscriber)
+   return () => internals.unsubscribe(subscriber.id)
+  },
+  replaceState(newState: T) {
+   if (newState === internals.currentState) return // Skip if state hasn't changed
 
-      const initialValue = selector
-        ? selector(internals.state)
-        : internals.state
+   internals.previousState = internals.currentState
+   internals.currentState = newState
 
-      const [value, setValue] = useState(initialValue)
+   internals.subscribers.forEach((subscriber) => {
+    if (subscriber.derive) {
+     const newResult = subscriber.derive(newState)
+     const areEqual = subscriber.previousValue === newResult
 
-      useEffect(() => {
-        return internals.subscribe({
-          derive: selector,
-          previousValue: value,
-          update: setValue,
-          id,
-        })
-      }, [id, selector])
-
-      return value
-    },
-
-    unsubscribe(id: string) {
-      internals.subscribers.delete(id)
-    },
-
-    subscribe(subscriber: SubscriberT) {
-      internals.subscribers.set(subscriber.id, subscriber)
-      return () => internals.unsubscribe(subscriber.id)
-    },
-
-    replaceState(newState: T) {
-      if (newState === internals.currentState) return // Skip if state hasn't changed
-
-      internals.previousState = internals.currentState
-      internals.currentState = newState
-
-      internals.subscribers.forEach((subscriber) => {
-        if (subscriber.derive) {
-          const newResult = subscriber.derive(newState)
-          const areEqual = areArrayItemsEqual(
-            subscriber.previousValue,
-            newResult
-          )
-
-          if (!areEqual) {
-            subscriber.update(newResult)
-            subscriber.previousValue = newResult
-          }
-        } else if (subscriber.previousValue !== newState) {
-          subscriber.update(newState)
-          subscriber.previousValue = newState
-        }
-      })
-    },
+     if (!areEqual) {
+      subscriber.update(newResult)
+      subscriber.previousValue = newResult
+     }
+    } else if (subscriber.previousValue !== newState) {
+     subscriber.update(newState)
+     subscriber.previousValue = newState
+    }
+   })
   }
+ }
 
-  datMainAss.stores.set(internals.id, internals)
-  return internals
+ datMainAss.stores.set(internals.id, internals)
+ return internals
 }
 
 type InternalsT<T> = {
-  id: number
-  currentState: T
-  previousState: T | null
-  subscribers: Map<string, SubscriberT>
-  get state(): T
-  use(): T
-  replaceState: (newState: T) => void
-  subscribe: (subscriber: SubscriberT) => () => void
-  unsubscribe: (id: string) => void
+ id: number
+ currentState: T
+ previousState: T | null
+ subscribers: Map<string, SubscriberT>
+ get state(): T
+ use(selector?: (state: T) => any): any
+ replaceState: (newState: T) => void
+ subscribe: (subscriber: SubscriberT) => () => void
+ unsubscribe: (id: string) => void
 }
 
-const datBoolean = (initialState: boolean) => {
-  const internals = createInternals(initialState)
-
-  const toggle = (value?: boolean) => {
-    internals.replaceState(value ?? !internals.state)
-  }
-
-  return getFinalStore({ internals, toggle })
+// Base store type
+interface BaseStoreT<T> {
+ identify: (name: string) => void
+ use: {
+  (): T
+  <R>(selector: (state: T) => R): R
+ }
+ set: (newState: T) => void
+ setFromEvent: (event: EventWithTargetValue) => void
+ state: T
 }
 
-type GetFinalStoreOptionsT = {
-  [key: string]: any
+// Boolean store specific type
+interface BooleanStoreT extends BaseStoreT<boolean> {
+ setToggle: (value?: any) => boolean
+}
+
+// Number store specific type
+interface NumberStoreT extends BaseStoreT<number> {
+ setIncrement: () => void
+ setDecrement: () => void
+}
+
+// String store specific type
+interface StringStoreT extends BaseStoreT<string> {}
+
+// Array store specific type
+interface ArrayStoreT<T> extends BaseStoreT<T[]> {
+ useFilter: (filterCallback: (item: T) => boolean) => T[]
+ useMap: <R>(mapCallback: (item: T) => R) => R[]
+ append: (item: T) => void
+ prepend: (item: T) => void
+}
+
+// Object store specific type
+interface ObjectStoreT<T extends object> extends BaseStoreT<T> {
+ usePartial: <R>(path: string) => R
+ merge: (newPartialState: Partial<T>) => void
 }
 
 type EventTargetWithValue = EventTarget & { value: any }
-
 interface EventWithTargetValue extends Event {
-  target: EventTargetWithValue;
+ target: EventTargetWithValue
 }
 
-const getFinalStore = <T>(options: GetFinalStoreOptionsT): DatassStoreT<T> => {
-  const { internals, ...rest } = options;
+const getFinalStore = <_T, S extends BaseStoreT<any>>(options: { internals: InternalsT<any>; [key: string]: any }): S => {
+ const { internals, ...rest } = options
 
-  const identify = (name: string) => {
-    const datassAssociation = datMainAss.stores.get(internals.id);
-    datMainAss.stores.delete(internals.id);
-    datMainAss.stores.set(name, datassAssociation);
-  };
+ const identify = (name: string) => {
+  const datassAssociation = datMainAss.stores.get(internals.id)
+  datMainAss.stores.delete(internals.id)
+  datMainAss.stores.set(name, datassAssociation)
+ }
 
-  const setFromEvent = (event: EventWithTargetValue | any) => {
-    const target = (event?.target || { value: "" }) as any;
-    internals.replaceState(target.value);
-  };
+ const setFromEvent = (event: EventWithTargetValue | any) => {
+  const target = (event?.target || { value: '' }) as any
+  internals.replaceState(target.value)
+ }
 
-  return {
-    identify,
-    use: internals.use,
-    set: internals.replaceState,
-    setFromEvent, // Ensure this is included
-    ...rest,
-    get state() {
-      return internals.state;
-    },
-  };
-};
-
-
-const datNumber = (initialState: number) => {
-  const internals = createInternals(initialState)
-
-  const increment = () => {
-    internals.replaceState(internals.state + 1)
+ return {
+  identify,
+  use: internals.use,
+  set: internals.replaceState,
+  setFromEvent,
+  ...rest,
+  get state() {
+   return internals.state
   }
-
-  const decrement = () => {
-    internals.replaceState(internals.state - 1)
-  }
-
-  return getFinalStore({ internals, increment, decrement })
+ } as unknown as S
 }
 
-const datString = (initialState: string) => {
-  const internals = createInternals(initialState)
-  return getFinalStore({ internals })
+const datBoolean = (initialState: boolean): BooleanStoreT => {
+ const internals = createInternals(initialState)
+
+ const setToggle = (value?: any) => {
+  const newState = value ?? !internals.state
+  internals.replaceState(!!newState)
+  return !!newState
+ }
+
+ return getFinalStore<boolean, BooleanStoreT>({ internals, setToggle })
 }
 
-const datArray = <T>(initialState: T[]) => {
-  const internals = createInternals<T[]>(initialState)
+const datNumber = (initialState: number): NumberStoreT => {
+ const internals = createInternals(initialState)
 
-  const useFilter = (filterCallback: (item: T) => boolean) => {
-    const id = useId()
-    const initialResult = internals.state.filter(filterCallback)
-    const [value, setValue] = useState(initialResult)
+ const setIncrement = () => {
+  internals.replaceState(internals.state + 1)
+ }
 
-    useEffect(() => {
-      const derive = (newState: T[]): any[] => {
-        return newState.filter(filterCallback)
-      }
+ const setDecrement = () => {
+  internals.replaceState(internals.state - 1)
+ }
 
-      return internals.subscribe({
-        previousValue: value,
-        update: setValue,
-        derive,
-        id,
-      })
-    }, [])
-
-    return value
-  }
-
-  const useMap = (mapCallback: (item: T) => any) => {
-    const id = useId()
-    const initialResult = internals.state.map(mapCallback)
-    const [value, setValue] = useState(initialResult)
-
-    useEffect(() => {
-      const derive = (newState: T[]): any[] => {
-        return newState.map(mapCallback)
-      }
-
-      return internals.subscribe({
-        id,
-        previousValue: value,
-        update: setValue,
-        derive,
-      })
-    }, [])
-
-    return value
-  }
-
-  return getFinalStore({ internals, useFilter, useMap })
+ return getFinalStore<number, NumberStoreT>({ internals, setIncrement, setDecrement })
 }
 
-// Helper function to compare array items
-const areArrayItemsEqual = (arr1: any[], arr2: any[]): boolean => {
-  if (arr1.length !== arr2.length) return false
-
-  for (let i = 0; i < arr1.length; i++) {
-    if (arr1[i] !== arr2[i]) return false
-  }
-
-  return true
+const datString = (initialState: string): StringStoreT => {
+ const internals = createInternals(initialState)
+ return getFinalStore<string, StringStoreT>({ internals })
 }
 
-const datObject = <T>(initialState: T) => {
-  const internals = createInternals<T>(initialState)
+const datArray = <T>(initialState: T[] = [] as T[]): ArrayStoreT<T> => {
+ const internals = createInternals<T[]>(initialState)
 
-  const usePartial = (path: string) => {
-    const id = useId()
-    const initialResult = safeGet(internals.state as any, path)
-    const [value, setValue] = useState(initialResult)
+ // Override replaceState to bypass array equality checks
+ internals.replaceState = (newState: T[]) => {
+  internals.previousState = internals.currentState
+  internals.currentState = newState
 
-    useEffect(() => {
-      const derive = (newState: T[]): any[] => {
-        return safeGet(newState, path)
-      }
+  internals.subscribers.forEach((subscriber) => {
+   if (subscriber.derive) {
+    const newResult = subscriber.derive(newState)
+    subscriber.update(newResult)
+    subscriber.previousValue = newResult
+   } else {
+    subscriber.update(newState)
+    subscriber.previousValue = newState
+   }
+  })
+ }
 
-      return internals.subscribe({
-        id,
-        previousValue: value,
-        update: setValue,
-        derive,
-      })
-    }, [])
+ const useFilter = (filterCallback: (item: T) => boolean) => {
+  const id = useId()
+  const initialResult = internals.state.filter(filterCallback)
+  const [value, setValue] = useState(initialResult)
 
-    return value
-  }
+  useEffect(() => {
+   const derive = (newState: T[]): T[] => {
+    return newState.filter(filterCallback)
+   }
 
-  const finalStore = getFinalStore({ internals, usePartial })
-  return finalStore as unknown as DatassStoreT<T> & DatassObjectStoreT
+   return internals.subscribe({
+    previousValue: value,
+    update: setValue,
+    derive,
+    id
+   })
+  }, [])
+
+  return value
+ }
+
+ const useMap = <R>(mapCallback: (item: T) => R) => {
+  const id = useId()
+  const initialResult = internals.state.map(mapCallback)
+  const [value, setValue] = useState(initialResult)
+
+  useEffect(() => {
+   const derive = (newState: T[]): R[] => {
+    return newState.map(mapCallback)
+   }
+
+   return internals.subscribe({
+    id,
+    previousValue: value,
+    update: setValue,
+    derive
+   })
+  }, [])
+
+  return value
+ }
+
+ // Add append method
+ const append = (item: T) => {
+  internals.replaceState([...internals.state, item])
+ }
+
+ // Add prepend method
+ const prepend = (item: T) => {
+  internals.replaceState([item, ...internals.state])
+ }
+
+ return getFinalStore<T[], ArrayStoreT<T>>({
+  internals,
+  useFilter,
+  useMap,
+  append,
+  prepend
+ })
 }
 
-type DatassStoreT<T> = {
-  use: {
-    (): T
-    <T>(selector: (state: T) => any): any
-  }
+const datObject = <T extends object>(initialState: T): ObjectStoreT<T> => {
+ const internals = createInternals<T>(initialState)
 
-  set: (newState: T) => void
-  setFromEvent: (event: EventWithTargetValue) => void
-  identify: (name: string) => void
-  state: T
-}
+ const usePartial = <R>(path: string): R => {
+  const id = useId()
+  const initialResult = safeGet(internals.state as any, path)
+  const [value, setValue] = useState(initialResult)
 
-type DatassObjectStoreT = {
-  usePartial: <T>(path: string) => T
+  useEffect(() => {
+   const derive = (newState: T): R => {
+    return safeGet(newState, path)
+   }
+
+   return internals.subscribe({
+    id,
+    previousValue: value,
+    update: setValue,
+    derive
+   })
+  }, [])
+
+  return value
+ }
+
+ // Add merge method
+ const merge = (newPartialState: Partial<T>) => {
+  internals.replaceState({ ...internals.state, ...newPartialState } as T)
+ }
+
+ return getFinalStore<T, ObjectStoreT<T>>({
+  internals,
+  usePartial,
+  merge
+ })
 }
 
 export const datass = {
-  boolean: datBoolean,
-  number: datNumber,
-  string: datString,
-  array: datArray,
-  object: datObject,
+ boolean: datBoolean,
+ number: datNumber,
+ string: datString,
+ array: datArray,
+ object: datObject
 }
-
-// const foo = datass.string('a')
-
-// const input = document.createElement('input')
-// input.addEventListener('change', event => {
-//   foo.setFromEvent(event)
-// })
