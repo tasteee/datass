@@ -1,25 +1,57 @@
 ![DATASS](/logo.svg)
 
-## data super store [WIP]
+## data super store
 
-datass is a state management library for React that focuses on developer experience.
+datass is a state management library for React that focuses on developer experience. It is lightweight, flexible, and unopinionated. If you're feeling like switching it up, maybe give datass a shot.
 
-lightweight, flexible, unopinionated -- if ur feeling like switching it up, u should give datass a shot.
+# It is soooo easy.
+
+```tsx
+import { datass } from 'datass'
+
+const nameStore = datass.string('Hannah')
+const ageStore = datass.number(25)
+const isActiveStore = datass.boolean(true)
+const favoriteFoodsStore = datass.array(['catfood', 'spam'])
+const avatarUrlStore = datass.string('imgur.com/foobarbaz.png')
+
+// Trigger state updates from anywhere in your app,
+// even from outside of React components.
+ageStore.set(26)
+isActiveStore.set.toggle()
+favoriteFoodsStore.set.append('milk')
+
+// Read store states from anywhere in your app, as well.
+ageStore.state // 26
+isActiveStore.state // false
+favoriteFoodsStore.state // ['catfood', 'spam', 'milk']
+
+// Subscribing to state updates from within a React component
+// is the easiest thing you've ever done.
+const UserAvatar = () => {
+  avatarUrlStore.use()
+  return <img src={avatarUrlStore.state} />
+}
+
+const UserSettingsMenu = () => {
+  const avatarUrl = avatarUrlStore.use()
+  const handleChange = avatarUrlStore.set.fromEvent
+  // store.set.fromEvent(event) will automatically issue a state
+  // update based on the event.target.value.
+
+  return (
+    <div>
+      <input onChange={handleChange} value={avatarUrl} />
+      {/* ... other user settings stuffs */}
+    </div>
+  )
+}
+```
 
 ## Install
 
-Choose your poison.
-
 ```bash
 npm i datass
-```
-
-```bash
-yarn add datass
-```
-
-```bash
-bun install datass
 ```
 
 ## Import
@@ -30,28 +62,17 @@ import { datass } from 'datass'
 
 ## Table of Contents
 
-1. [Installation](#installation)
-2. [Basic Concepts](#basic-concepts)
-3. [Store Types](#store-types)
+1. [Basic Concepts](#basic-concepts)
+2. [Store Types](#store-types)
    - [String Store](#string-store)
    - [Number Store](#number-store)
    - [Boolean Store](#boolean-store)
    - [Array Store](#array-store)
    - [Object Store](#object-store)
-4. [React Integration](#react-integration)
-5. [Advanced Usage](#advanced-usage)
-6. [Best Practices](#best-practices)
-7. [TypeScript Support](#typescript-support)
-
-## Installation
-
-Choose your poison.
-
-```bash
-npm install datass
-yarn add datass
-bun install datass
-```
+3. [React Integration](#react-integration)
+4. [Advanced Usage](#advanced-usage)
+5. [Best Practices](#best-practices)
+6. [TypeScript Support](#typescript-support)
 
 ## Basic Concepts
 
