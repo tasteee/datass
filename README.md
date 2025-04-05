@@ -131,91 +131,77 @@ nameStore.set.reset() // back to "John"
 
 ### Number Store
 
-Specialized for number values with arithmetic operations.
-
 ```javascript
 import { datass } from 'datass'
 
-// Create a number store
-const counterStore = datass.number(0)
-
-// Basic state operations
-console.log(counterStore.state) // 0
-counterStore.set(5)
-console.log(counterStore.state) // 5
-
-// Convenience methods
-counterStore.set.add(3) // 8
-counterStore.set.subtract(2) // 6
-
-// Reset to initial value
-counterStore.set.reset() // back to 0
+const counter = datass.number(0)
+counter.set(5)
+counter.set.add(3)
+counter.set.subtract(2)
+counter.set.reset()
+counter.state
+counter.use()
+counter.use((number) => number > 5)
 ```
 
 ### Boolean Store
 
-Specialized for boolean values with toggle functionality.
-
 ```javascript
 import { datass } from 'datass'
 
-// Create a boolean store
-const darkModeStore = datass.boolean(false)
+const shouldUseDarkMode = datass.boolean(false)
+shouldUseDarkMode.set(true)
+shouldUseDarkMode.set.toggle()
+shouldUseDarkMode.set.toggle()
+shouldUseDarkMode.set.reset()
+shouldUseDarkMode.state
 
-// Basic state operations
-console.log(darkModeStore.state) // false
-darkModeStore.set(true)
-console.log(darkModeStore.state) // true
-
-// Toggle the value
-darkModeStore.set.toggle() // false
-darkModeStore.set.toggle() // true
-
-// Reset to initial value
-darkModeStore.set.reset()
+shouldUseDarkMode.use()
+shouldUseDarkMode.use((value) => value === someOtherBoolean)
 ```
 
 ### Array Store
 
-Specialized for array values with collection operations.
-
 ```javascript
 import { datass } from 'datass'
 
-// Create an array store
-const todosStore = datass.array([
+const todos = datass.array([
   { id: 1, text: 'Learn datass', completed: false },
   { id: 2, text: 'Build an app', completed: false }
 ])
 
-// Basic state operations
-console.log(todosStore.state) // [{ id: 1, ... }, { id: 2, ... }]
+// Override entire state.
+todos.set([{ id: 3, text: 'New task', completed: false }])
 
-// Replace the entire array
-todosStore.set([{ id: 3, text: 'New task', completed: false }])
-
-// Add items to the array
-todosStore.set.append({ id: 4, text: 'Fourth task', completed: false })
+// Add items to the state.
+todos.set.append({ id: 4, text: 'Fourth task', completed: false })
 // Results in [{ id: 3, ... }, { id: 4, ... }]
 
-todosStore.set.prepend({ id: 0, text: 'First task', completed: false })
+todos.set.prepend({ id: 0, text: 'First task', completed: false })
 // Results in [{ id: 0, ... }, { id: 3, ... }, { id: 4, ... }]
 
 // Produce the next state by filtering the current state.
-todosStore.set.filter((todo) => !todo.completed)
+todos.set.filter((todo) => !todo.completed)
 // Keeps only uncompleted todos
 
 // Produce the next state by deriving it from the current state.
-todosStore.set.map((todo) => ({
+// Particularly useful for performing an update on all items at once.
+todos.set.map((todo) => ({
   ...todo,
   text: todo.text.toUpperCase()
 }))
 
 // Produce the next state by concatenating new items onto the current state.
-todosStore.set.merge([{ id: 5, text: 'Another task', completed: false }])
+// Basically like .set.append, except .set.merge accepts an array and can
+// append multiple items.
+todos.set.merge([{ id: 5, text: 'Another task', completed: false }])
 
-// Reset to initial value
-todosStore.set.reset()
+todos.set.reset()
+todos.state
+
+todos.use()
+todos.use.filter((todo) => todo.isCompleted)
+todos.use.map((todo) => ({ ...todo, text: todo.text.toUpperCase() }))
 ```
 
 ### Object Store
@@ -257,7 +243,7 @@ userStore.set({
   }
 })
 
-// Produce the next state by providing a patch to be applied to the current state. Specified object values will be replaced, but existing values that are not targeted by the merging object will be left in place, rather than being erased, as is the case with `set`.
+// Produce the next state by providing a patch to be applied to the current state.
 userStore.set.merge({
   preferences: {
     language: 'en'
@@ -368,13 +354,15 @@ const todosStore = datass.array([
 ])
 
 function TodoApp() {
-  // Get all todos
+  // Subscribe to all changes to todosStore
+  // and get the entire store array back.
   const allTodos = todosStore.use()
 
-  // Get only completed todos with .use.filter
+  // Subscribe to only completed todos.
   const completedTodos = todosStore.use.filter((todo) => todo.completed)
 
-  // Transform todos with .use.map
+  // Subscribe to all changes, but derive something different
+  // from the store as a whole.
   const todoTexts = todosStore.use.map((todo) => todo.text)
 
   return (
@@ -662,7 +650,8 @@ const userStore = datass.object({
   }
 })
 
-// Avoid: Splitting related data across multiple stores
+// Avoid: Splitting related data across multiple stores.
+// Or just do whatever you need to. Who am I to judge?
 const userNameStore = datass.string('John')
 const userEmailStore = datass.string('john@example.com')
 const darkModeStore = datass.boolean(false)
@@ -684,7 +673,8 @@ function Counter() {
   // ...
 }
 
-// Avoid: Creating stores inside components
+// Avoid: Creating stores inside components.
+// This simply will not work as expected. Just don't.
 function BadCounter() {
   // Creates a new store on every render
   const counterStore = datass.number(0)
@@ -709,7 +699,7 @@ const countStore = datass.number(0)
 // countStore.state is typed as number
 
 // Typed array store
-interface Todo {
+type Todo = {
   id: number
   text: string
   completed: boolean
@@ -719,7 +709,7 @@ const todosStore = datass.array<Todo>([{ id: 1, text: 'Learn TypeScript', comple
 // todosStore.state is typed as Todo[]
 
 // Typed object store
-interface UserState {
+type UserState = {
   name: string
   age: number
   address: {
