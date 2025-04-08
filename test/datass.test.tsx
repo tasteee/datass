@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, act } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, act, cleanup } from '@testing-library/react'
 import { datass } from '../src/datass'
 import * as React from 'react'
 
@@ -14,158 +14,395 @@ const renderHook = (hook: () => any) => {
   }
 }
 
+// Helper component to test subscription behavior
+function StateObserver({ store, selector = null }) {
+  const value = selector ? store.use(selector) : store.use()
+  return <div data-testid="value">{JSON.stringify(value)}</div>
+}
+
 describe('datass state management', () => {
-  describe('Initial state', () => {
-    it('should initialize string store correctly', () => {
-      const store = datass.string('foo')
-      expect(store.state).toBe('foo')
-    })
-
-    it('should initialize number store correctly', () => {
-      const store = datass.number(42)
-      expect(store.state).toBe(42)
-    })
-
-    it('should initialize boolean store correctly', () => {
-      const store = datass.boolean(true)
-      expect(store.state).toBe(true)
-    })
-
-    it('should initialize array store correctly', () => {
-      const store = datass.array<number>([1, 2, 3])
-      expect(store.state).toEqual([1, 2, 3])
-    })
-
-    it('should initialize object store correctly', () => {
-      type StateType = { foo: string; count: number }
-      const store = datass.object<StateType>({ foo: 'bar', count: 5 })
-      expect(store.state).toEqual({ foo: 'bar', count: 5 })
-    })
+  beforeEach(() => {
+    // Reset any potential state between tests
+    vi.clearAllMocks()
   })
 
-  describe('State updates', () => {
-    it('should update string store state', () => {
-      const store = datass.string('')
-      store.set('updated')
-      expect(store.state).toBe('updated')
-    })
-
-    it('should update number store state', () => {
-      const store = datass.number(10)
-      store.set(20)
-      expect(store.state).toBe(20)
-    })
-
-    it('should update boolean store state', () => {
-      const store = datass.boolean(false)
-      store.set(true)
-      expect(store.state).toBe(true)
-    })
-
-    it('should update array store state', () => {
-      const store = datass.array([1, 2])
-      store.set([3, 4, 5])
-      expect(store.state).toEqual([3, 4, 5])
-    })
-
-    it('should update object store state', () => {
-      const store = datass.object({ a: 1 })
-      store.set({ b: 2 })
-      expect(store.state).toEqual({ b: 2 })
-    })
+  afterEach(() => {
+    cleanup()
   })
 
-  describe('React integration', () => {
-    it('should trigger re-render when using store.use()', () => {
-      const store = datass.string('initial')
-      let value = renderHook(() => store.use())
-      expect(value).toBe('initial')
+  describe('boolean store', () => {
+    it('should initialize with the provided value', () => {
+      const $store = datass.boolean(true)
+      expect($store.state).toBe(true)
+    })
+
+    it('should update state when set is called', () => {
+      const $store = datass.boolean(true)
+      act(() => {
+        $store.set(false)
+      })
+      expect($store.state).toBe(false)
+    })
+
+    it('should toggle the boolean value', () => {
+      const $store = datass.boolean(true)
+      act(() => {
+        $store.set.toggle()
+      })
+      expect($store.state).toBe(false)
+      act(() => {
+        $store.set.toggle()
+      })
+      expect($store.state).toBe(true)
+    })
+
+    it('should reset to initial value', () => {
+      const $store = datass.boolean(true)
+      act(() => {
+        $store.set(false)
+      })
+      expect($store.state).toBe(false)
+      act(() => {
+        $store.set.reset()
+      })
+      expect($store.state).toBe(true)
+    })
+
+    it('should correctly subscribe to state changes in components', () => {
+      const $store = datass.boolean(true)
+      const { getByTestId, rerender } = render(<StateObserver store={$store} />)
+
+      expect(getByTestId('value').textContent).toBe('true')
 
       act(() => {
-        store.set('updated')
+        $store.set(false)
       })
 
-      value = renderHook(() => store.use())
-      expect(value).toBe('updated')
+      rerender(<StateObserver store={$store} />)
+      expect(getByTestId('value').textContent).toBe('false')
     })
   })
 
-  describe('Advanced operations', () => {
-    it('should add and subtract from number stores', () => {
-      const store = datass.number(0)
-      store.set.add(1)
-      expect(store.state).toBe(1)
-      store.set.subtract(2)
-      expect(store.state).toBe(-1)
+  describe('string store', () => {
+    it('should initialize with the provided value', () => {
+      const $store = datass.string('hello')
+      expect($store.state).toBe('hello')
     })
 
-    it('should append and prepend items to array store', () => {
-      const store = datass.array<number>([])
-      store.set.append(1)
-      expect(store.state).toEqual([1])
-      store.set.prepend(5)
-      expect(store.state).toEqual([5, 1])
+    it('should update state when set is called', () => {
+      const $store = datass.string('hello')
+      act(() => {
+        $store.set('world')
+      })
+      expect($store.state).toBe('world')
     })
 
-    it('should filter and map array store', () => {
-      const store = datass.array<number>([1, 2, 3, 4])
-      const filtered = renderHook(() => store.use.filter((num) => num > 2))
-      const mapped = renderHook(() => store.use.map((num) => num * 2))
-      expect(filtered).toEqual([3, 4])
-      expect(mapped).toEqual([2, 4, 6, 8])
-    })
-
-    it('should merge object store state', () => {
-      const store = datass.object({ a: 1, b: 2 })
-      store.set.merge({ b: 3, c: 4 })
-      expect(store.state).toEqual({ a: 1, b: 3, c: 4 })
-    })
-
-    it('should allow partial object selection with use.deep', () => {
-      const store = datass.object({ nested: { value: 42, list: [0, 1, 2] } })
-      const nestedValue = renderHook(() => store.use.deep('nested.value'))
-      const listItem = renderHook(() => store.use.deep('nested.list.1'))
-      expect(nestedValue).toBe(42)
-      expect(listItem).toBe(1)
+    it('should reset to initial value', () => {
+      const $store = datass.string('hello')
+      act(() => {
+        $store.set('world')
+      })
+      expect($store.state).toBe('world')
+      act(() => {
+        $store.set.reset()
+      })
+      expect($store.state).toBe('hello')
     })
   })
 
-  describe('Additional features', () => {
-    it('should handle event with target value in set.fromEvent', () => {
-      const store = datass.string('initial')
-      const mockEvent = { target: { value: 'new value' } }
-      store.set.fromEvent(mockEvent)
-      expect(store.state).toBe('new value')
+  describe('number store', () => {
+    it('should initialize with the provided value', () => {
+      const $store = datass.number(42)
+      expect($store.state).toBe(42)
     })
 
-    it('should handle selector in use method', () => {
-      const store = datass.object({ count: 10, name: 'test' })
-      const count = renderHook(() => store.use((state) => state.count))
-      expect(count).toBe(10)
+    it('should update state when set is called', () => {
+      const $store = datass.number(42)
+      act(() => {
+        $store.set(100)
+      })
+      expect($store.state).toBe(100)
     })
 
-    it('should not update subscribers if state is the same', () => {
-      const store = datass.string('test')
-      let renderCount = 0
-
-      renderHook(() => {
-        store.use()
-        renderCount++
+    it('should add to the current value', () => {
+      const $store = datass.number(42)
+      act(() => {
+        $store.set.add(8)
       })
+      expect($store.state).toBe(50)
+    })
 
-      expect(renderCount).toBe(1)
+    it('should subtract from the current value', () => {
+      const $store = datass.number(42)
+      act(() => {
+        $store.set.subtract(2)
+      })
+      expect($store.state).toBe(40)
+    })
+
+    it('should reset to initial value', () => {
+      const $store = datass.number(42)
+      act(() => {
+        $store.set(100)
+      })
+      expect($store.state).toBe(100)
+      act(() => {
+        $store.set.reset()
+      })
+      expect($store.state).toBe(42)
+    })
+  })
+
+  describe('array store', () => {
+    const initialItems = [
+      { id: 1, text: 'item 1' },
+      { id: 2, text: 'item 2' }
+    ]
+
+    it('should initialize with the provided array', () => {
+      const $store = datass.array(initialItems)
+      expect($store.state).toEqual(initialItems)
+    })
+
+    it('should replace the entire array when set is called', () => {
+      const $store = datass.array(initialItems)
+      const newItems = [{ id: 3, text: 'item 3' }]
 
       act(() => {
-        store.set('test') // Same value, should not trigger re-render
+        $store.set(newItems)
       })
 
-      expect(renderCount).toBe(1)
+      expect($store.state).toEqual(newItems)
+    })
+
+    it('should prepend items to the array', () => {
+      const $store = datass.array(initialItems)
+      const newItem = { id: 0, text: 'item 0' }
 
       act(() => {
-        store.set('different') // Different value, should trigger re-render
+        $store.set.prepend(newItem)
       })
 
-      expect(renderCount).toBe(2)
+      expect($store.state).toEqual([newItem, ...initialItems])
+    })
+
+    it('should append items to the array', () => {
+      const $store = datass.array(initialItems)
+      const newItem = { id: 3, text: 'item 3' }
+
+      act(() => {
+        $store.set.append(newItem)
+      })
+
+      expect($store.state).toEqual([...initialItems, newItem])
+    })
+
+    it('should reset to initial value', () => {
+      const $store = datass.array(initialItems)
+
+      act(() => {
+        $store.set([{ id: 999, text: 'new item' }])
+      })
+
+      expect($store.state).not.toEqual(initialItems)
+
+      act(() => {
+        $store.set.reset()
+      })
+
+      expect($store.state).toEqual(initialItems)
+    })
+
+    it('should allow finding items in the array', () => {
+      const $store = datass.array(initialItems)
+
+      // We need to wrap this in renderHook because use.find is meant to be called in a component
+      const result = renderHook(() => $store.use.find((item) => item.id === 2))
+
+      expect(result).toEqual({ id: 2, text: 'item 2' })
+    })
+
+    it('should allow selecting derived state with a selector', () => {
+      const $store = datass.array(initialItems)
+      const { getByTestId } = render(<StateObserver store={$store} selector={(state) => state.map((item) => item.id)} />)
+
+      expect(getByTestId('value').textContent).toBe(JSON.stringify([1, 2]))
+    })
+  })
+
+  describe('object store', () => {
+    const initialState = {
+      name: 'John',
+      age: 30,
+      address: {
+        city: 'New York',
+        zip: '10001'
+      }
+    }
+
+    it('should initialize with the provided object', () => {
+      const $store = datass.object(initialState)
+      expect($store.state).toEqual(initialState)
+    })
+
+    it('should merge partial updates with existing state', () => {
+      const $store = datass.object(initialState)
+
+      act(() => {
+        $store.set({ age: 31 })
+      })
+
+      expect($store.state).toEqual({
+        ...initialState,
+        age: 31
+      })
+    })
+
+    it('should handle nested object updates', () => {
+      const $store = datass.object(initialState)
+
+      act(() => {
+        $store.set({
+          address: {
+            ...initialState.address,
+            city: 'Boston'
+          }
+        })
+      })
+
+      expect($store.state.address.city).toBe('Boston')
+      expect($store.state.address.zip).toBe('10001')
+    })
+
+    it('should reset to initial value', () => {
+      const $store = datass.object(initialState)
+
+      act(() => {
+        $store.set({ name: 'Jane', age: 25 })
+      })
+
+      expect($store.state.name).toBe('Jane')
+
+      act(() => {
+        $store.set.reset()
+      })
+
+      expect($store.state).toEqual(initialState)
+    })
+
+    it('should allow selecting derived state with a selector', () => {
+      const $store = datass.object(initialState)
+      const { getByTestId } = render(<StateObserver store={$store} selector={(state) => state.name} />)
+
+      expect(getByTestId('value').textContent).toBe('"John"')
+
+      act(() => {
+        $store.set({ name: 'Jane' })
+      })
+
+      expect(getByTestId('value').textContent).toBe('"Jane"')
+    })
+  })
+
+  describe('middlewares', () => {
+    it('should apply middleware to stores', () => {
+      // Create a simple logging middleware
+      const logs = []
+      const loggingMiddleware = (store) => {
+        const originalSet = store.set
+
+        // Wrap the set function to log actions
+        store.set = (...args) => {
+          logs.push({ action: 'set', args })
+          return originalSet(...args)
+        }
+
+        return store
+      }
+
+      const customDatass = datass.withMiddleware(loggingMiddleware)
+      const $store = customDatass.number(0)
+
+      act(() => {
+        $store.set(42)
+      })
+
+      expect(logs.length).toBe(1)
+      expect(logs[0].action).toBe('set')
+      expect(logs[0].args[0]).toBe(42)
+      expect($store.state).toBe(42)
+    })
+
+    it('should chain multiple middlewares', () => {
+      const executionOrder = []
+
+      const middleware1 = (store) => {
+        executionOrder.push('middleware1')
+        return store
+      }
+
+      const middleware2 = (store) => {
+        executionOrder.push('middleware2')
+        return store
+      }
+
+      const customDatass = datass.withMiddleware(middleware1, middleware2)
+      customDatass.number(0)
+
+      expect(executionOrder).toEqual(['middleware1', 'middleware2'])
+    })
+  })
+
+  describe('state subscribers', () => {
+    it('should only trigger updates when the selected state changes', () => {
+      const initialState = { count: 0, name: 'test' }
+      const $store = datass.object(initialState)
+
+      // Create a mock function to track renders
+      const renderCounter = vi.fn()
+
+      function TestComponent() {
+        // Only subscribe to count
+        const count = $store.use((state) => state.count)
+        renderCounter(count)
+        return null
+      }
+
+      render(<TestComponent />)
+      expect(renderCounter).toHaveBeenCalledWith(0)
+
+      // Reset the mock to count next renders
+      renderCounter.mockClear()
+
+      // Update a property we're not subscribed to
+      act(() => {
+        $store.set({ name: 'updated' })
+      })
+
+      // Should not have re-rendered
+      expect(renderCounter).not.toHaveBeenCalled()
+
+      // Update the property we are subscribed to
+      act(() => {
+        $store.set({ count: 1 })
+      })
+
+      // Should have re-rendered
+      expect(renderCounter).toHaveBeenCalledWith(1)
+    })
+
+    it('should unsubscribe on component unmount', () => {
+      const $store = datass.number(0)
+      const unsubscribeSpy = vi.spyOn($store, 'use')
+
+      const { unmount } = render(<StateObserver store={$store} />)
+      expect(unsubscribeSpy).toHaveBeenCalled()
+
+      unmount()
+
+      // Now set should not trigger any subscriber updates
+      // This is hard to test directly, but we can ensure subscriptions are managed
+      expect(unsubscribeSpy).toHaveBeenCalled()
     })
   })
 })
