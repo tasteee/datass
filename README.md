@@ -1,128 +1,243 @@
 ![DATASS](/logo.svg)
 
-## data super store
+datass is a state management library for React that focuses on developer experience.
+It is simple as fuck, it is flexible, and it is super lightweight.
 
-### datass is super easy to use. you should try it.
+# Datass: A Simple and Intuitive State Management Library for React
 
-datass is a _shared_ state managment library for React. It is _super_ simple, intuitive, flexible, and robust.
+## Why Datass?
 
-```ts
+- **Simple API**: Intuitive methods that just work.
+- **Zero Configuration**: No providers, no complex setup.
+- **Flexible**: Works with any React app structure.
+- **Type-Safe**: Built with TypeScript for robust typing.
+- **Optimized**: Only re-renders when necessary.
+- **Extensible**: Customizable with middleware.
+- **Tiny**: Small bundle size with minimal dependencies.
+
+Datass gives you all the power of sophisticated state management with none of the complexity.
+
+---
+
+## Installation
+
+```
+npm install datass
+# or
+yarn add datass
+# or
+pnpm add datass
+# or
+bun install datass
+```
+
+---
+
+## Basic Usage
+
+```tsx
 import { datass } from 'datass'
 
-// datass.string stores
+// Create a store
+const $counter = datass.number(0)
 
-const $userName = datass.string('')
+// Access current state
+console.log($counter.state) // 0
+
+// Update state
+$counter.set(1)
+console.log($counter.state) // 1
+
+// Use in components
+function Counter() {
+  const count = $counter.use()
+  return Count: {count}
+}
+```
+
+## Store Types
+
+### String Store
+
+```tsx
+const $userName = datass.string('guest')
+
+// Set a new value
 $userName.set('tasteink')
+
+// Reset to initial value
 $userName.set.reset()
-$userName.use()
-console.log($userName.state)
 
-// datass.number stores
+// Get current value
+console.log($userName.state) // 'guest'
 
+// Use in components
+function UserGreeting() {
+  const name = $userName.use()
+  return Hello, { name }!
+}
+```
+
+### Number Store
+
+```tsx
 const $clickCount = datass.number(0)
+
+// Increment
 $clickCount.set($clickCount.state + 1)
+
+// Add to current value
+$clickCount.set.add(5)
+
+// Subtract from current value
+$clickCount.set.subtract(2)
+
+// Reset to initial value
 $clickCount.set.reset()
-$clickCount.use()
-console.log($clickCount.state)
 
-// datass.boolean stores
+// Get current value
+console.log($clickCount.state) // 0
 
-const $isDarkMode = datass.boolean(true)
-$isDarkMode.set(!$isDarkMode.state)
+// Use in components
+function ClickCounter() {
+  const count = $clickCount.use()
+  return  $clickCount.set.add(1)}>Clicks: {count}
+}
+```
+
+### Boolean Store
+
+```tsx
+const $isDarkMode = datass.boolean(false)
+
+// Set directly
+$isDarkMode.set(true)
+
+// Toggle value
 $isDarkMode.set.toggle()
+
+// Reset to initial value
 $isDarkMode.set.reset()
-$isDarkMode.use()
-console.log($isDarkMode.state)
 
-// datass.array stores
+// Get current value
+console.log($isDarkMode.state) // false
 
-const todo0 = { id: 0, label: 'feed a cat', isComplete: true }
-const todo1 = { id: 1, label: 'hug a minotaur', isComplete: false }
-const todo2 = { id: 2, label: 'fight fascism', isComplete: false }
-const todo3 = { id: 123, label: 'has a nap', isComplete: false }
-const todo4 = { id: 234, label: 'be kind', isComplete: false }
-const todo5 = { id: 345, label: 'speak up', isComplete: false }
+// Use in components
+function ThemeToggle() {
+  const isDark = $isDarkMode.use()
+  return (
+     $isDarkMode.set.toggle()}>
+      Switch to {isDark ? 'light' : 'dark'} mode
 
+  )
+}
+```
+
+### Array Store
+
+```tsx
 type TodoT = { id: number; label: string; isComplete: boolean }
-const $todos = datass.array<TodoT>([todo0, todo1, todo2])
 
-$todos.set.append(todo3)
-$todos.set.prepend(todo4)
-$todos.set([todo3, todo5])
+const initialTodos: TodoT[] = [
+  { id: 1, label: 'Learn datass', isComplete: true },
+  { id: 2, label: 'Build amazing app', isComplete: false }
+]
 
-$todos.use()
-$todos.use((list) => list.isComplete)
-$todos.use.find((todo) => todo.id === 2)
-console.log($todos.state)
+const $todos = datass.array(initialTodos)
 
-// datass.object stores
+// Replace entire array
+$todos.set([{ id: 3, label: 'New todo', isComplete: false }])
 
-type UserStoreT = {
-  name: { first: string; last: string }
-  age: number
-  sex: boolean
-  id: number
+// Add item to end
+$todos.set.append({ id: 4, label: 'Another todo', isComplete: false })
+
+// Add item to beginning
+$todos.set.prepend({ id: 0, label: 'First todo', isComplete: false })
+
+// Add multiple items to end
+$todos.set.append(
+  { id: 5, label: 'Fifth todo', isComplete: false },
+  { id: 6, label: 'Sixth todo', isComplete: false }
+)
+
+// Get current value
+console.log($todos.state) // Array of todos
+
+// Use in components
+function TodoList() {
+  const todos = $todos.use()
+  return (
+
+      {todos.map(todo => (
+        {todo.label}
+      ))}
+
+  )
+}
+```
+
+---
+
+## Advanced Features
+
+### Immer-powered Updates
+
+```tsx
+const $user = datass.object({
+  name: 'Brooklyn',
+  age: 30,
+  skills: ['JavaScript', 'React']
+})
+
+// Update multiple properties with ease using Immer drafts:
+$user.set.by((draft) => {
+  draft.name = draft.name.toUpperCase()
+  draft.age += 1
+  draft.skills.push('datass')
+})
+```
+
+---
+
+### Async Updates
+
+```tsx
+const $users = datass.array([])
+
+// Load users asynchronously:
+async function fetchUsers() {
+  await $users.set.byAsync(async () => {
+    const response = await fetch('https://api.example.com/users')
+    const data = await response.json()
+    return data // Directly return new state.
+  })
+}
+```
+
+---
+
+### Middleware
+
+```tsx
+// Create a logging middleware:
+const loggingMiddleware = (store) => {
+  const originalSet = store.set
+
+  store.set = (...args) => {
+    console.log(`Setting store state`, args)
+    return originalSet(...args)
+  }
+
+  return store
 }
 
-const $user = datass.object<UserStoreT>({
-  name: {
-    first: 'Hannah',
-    last: 'Colcleasure'
-  },
+// Apply middleware:
+const customDatass = datass.withMiddleware(loggingMiddleware)
 
-  age: 420,
-  sex: true,
-  id: 12345
-})
-
-$user.set({ age: 421 })
-$user.use()
-$user.use((state) => state.age)
-$user.set.reset()
-console.log($user.state)
-
-// Middleware can be used to modify the final store in any way.
-const customMiddlewareDatass = datass.withMiddleware(middlewareFunc0, middlewareFunc1)
-const $someState = customMiddlewareDatass.object<StoreT>({ foo: 'bar' })
-
-// And specific middleware configurations can be reused...
-const $otherState = customMiddlewareDatass.string('yolo')
-
-// All stores have these additional setter methods.
-const $store = datass.object({ name: 'Brooklyn', age: 123 })
-
-$store.set.by((draft) => {
-  draft.name = draft.name.toUpperCase()
-  draft.age += 10
-})
-
-$store.set.byAsync(async (draft) => {
-  const whatever = await something()
-  draft.name = whatever.value
-})
-
-// IMPORTANT: An object store's set method will
-// merge the provided object into the existing state
-// object to derive the new state object. Any other
-// store type's set method will replace the existing
-// state with the provided value.
-
-const $objectStore = datass.object({ foo: true, bar: true })
-$objectStore.set({ foo: false })
-$objectStore.state // { foo: false, bar: true }
-$objectStore.set({ bar: false })
-$objectStore.state // { foo: false, bar: false }
-
-const $arrayStore = datass.array([1, 2, 3])
-$arrayStore.set([0, 1, 2])
-$arrayStore.state // [0, 1, 2]
-
-// Array stores provide specific setter methods
-// to help manage the state.
-$arrayStore.set.append(3)
-$arrayStore.state // [0, 1, 2, 3]
-$arrayStore.set.prepend(-1)
-$arrayStore.state // [-1, 0, 1, 2, 3]
-$arrayStore.add(4, 5, 6)
-$arrayStore.state // [-1, 0, 1, 2, 3, 4, 5, 6]
+const $settings = customDatass.object({ theme: 'light', notifications: true })
 ```
+
+## TODO
+
+- [ ] Provide useful middlewares.
+- [ ] Provide component-level state management hooks.

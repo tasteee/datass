@@ -20,6 +20,14 @@ const useId = () => {
   return useMemo(() => nanoid(), [])
 }
 
+type SetterT = (value: any) => void
+
+const setFromEventTargetValue = (set: SetterT) => (event: Event) => {
+  const target = event?.target as HTMLInputElement
+  const value = target?.value
+  if (event && event.target) set(value)
+}
+
 class Datass {
   middlewares: any = []
 
@@ -27,7 +35,7 @@ class Datass {
     type PreparedT = PreparedStoreT<boolean>
     const store = new DatassStore<boolean>(initialValue)
 
-    const set = (value: boolean) => store.replaceState(value)
+    const set = (value: boolean) => store.replaceState(!!value)
     set.toggle = () => set(!store.state)
 
     set.by = (updaterFn: (draft: boolean) => void | boolean) => {
@@ -59,8 +67,10 @@ class Datass {
   number = (initialValue: number) => {
     type PreparedT = PreparedStoreT<number>
     const store = new DatassStore<number>(initialValue)
+    const asNumber = (value: any) => (typeof value === 'number' ? value : Number(value))
 
-    const set = (value: number) => store.replaceState(value)
+    const set = (value: number) => store.replaceState(asNumber(value))
+    set.fromEventTarget = setFromEventTargetValue(set)
     set.add = (value: number) => set(store.state + value)
     set.subtract = (value: number) => set(store.state - value)
 
@@ -95,6 +105,7 @@ class Datass {
     const store = new DatassStore<string>(initialValue)
 
     const set = (value: string) => store.replaceState(value)
+    set.fromEventTarget = setFromEventTargetValue(set)
 
     set.by = (updaterFn: (draft: string) => void | string) => {
       store.replaceState((draft) => updaterFn(draft))
