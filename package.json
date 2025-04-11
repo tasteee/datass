@@ -1,6 +1,6 @@
 {
   "name": "datass",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": {
     "name": "rokki",
     "email": "tasteink@proton.me",
@@ -55,8 +55,15 @@
   ],
   "homepage": "https://github.com/tasteee/datass#readme",
   "keywords": [
-    "some",
-    "keywords"
+    "react",
+    "state management",
+    "zustand",
+    "redux",
+    "datass",
+    "store",
+    "reactive",
+    "state",
+    "harambe"
   ],
   "license": "MIT",
   "private": false,
