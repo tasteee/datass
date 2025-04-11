@@ -22,25 +22,58 @@ pnpm add datass
 bun install datass
 ```
 
-## Basic Usage
+## Easy as hell.
 
 ```tsx
 import { datass } from 'datass'
 
-// Create a store
-const $counter = datass.number(0)
+const $numberStore = datass.number(100)
+const $stringStore = datass.string('foo')
+const $booleanStore = datass.boolean(false)
+const $arrayStore = datass.array([0, 1, 2])
+const $objectStore = datass.object({ username: 'tasteink' })
 
-// Access current state
-console.log($counter.state) // 0
+$numberStore.set(200)
+$numberStore.state // 200
+$numberStore.set.add(50)
+$numberStore.state // 250
+$numberStore.set.subtract(25)
+$numberStore.state // 225
+$numberStore.set.reset()
+$numberStore.state // 100
+$numberStore.use()
 
-// Update state
-$counter.set(1)
-console.log($counter.state) // 1
+$stringStore.set('bar')
+$stringStore.state // 'bar'
+$stringStore.set.reset()
+$stringStore.state // 'foo'
+$stringStore.use()
 
-// Use in components
-function Counter() {
-  return <p>Count: {$counter.use()}</p>
-}
+$booleanStore.set(false)
+$booleanStore.state // false
+$booleanStore.toggle()
+$booleanStore.state // true
+$booleanStore.set.reset()
+$booleanStore.state // true
+$booleanStore.use()
+
+$arrayStore.set([10, 11, 12])
+$arrayStore.state // [10, 11, 12]
+$arrayStore.set.append(13)
+$arrayStore.state // [10, 11, 12, 13]
+$arrayStore.set.prepend(9)
+$arrayStore.state // [9, 10, 11, 12, 13]
+$arrayStore.set.reset()
+$arrayStore.state // [0, 1, 2]
+$arrayStore.use()
+
+$objectStore.set({ age: 123 })
+$objectStore.state // { username: 'tasteink', age: 123 }
+$objectStore.set.replace({ username: 'rokki' })
+$objectStore.state // { username: 'rokki' }
+$objectStore.set.reset()
+$objectStore.state // { username: 'tasteink' }
+$objectStore.use()
 ```
 
 ## Store Types
@@ -190,6 +223,8 @@ async function fetchUsers() {
 
 ### Middleware
 
+#### Custom Middleware
+
 ```tsx
 // Create a logging middleware:
 const loggingMiddleware = (store) => {
@@ -208,7 +243,19 @@ const customDatass = datass.withMiddleware(loggingMiddleware)
 const $settings = customDatass.object({ theme: 'light', notifications: true })
 ```
 
+#### undoRedo middleware
+
+```ts
+import { datass } from 'datass'
+
+const undoRedoMiddleware = datass.middleware.undoRedo({ maxHistory: 50 })
+const enhancedDatass = datass.withMiddleware(undoRedoMiddleware)
+const $myStore = datass.array([0, 5, 10])
+$myStore.set.append(15)
+$myStore.set.undo()
+$myStore.set.redo()
+```
+
 ## TODO
 
-- [ ] Provide useful middlewares
 - [ ] Provide component-level state management hooks

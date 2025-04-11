@@ -1,26 +1,12 @@
+import { SetterT, PreparedStoreT, SubscriberT, MiddlewareFunctionT, InnerMiddlewareFunctionT } from './global'
 import { useState, useEffect, useMemo } from 'react'
 import { nanoid } from 'nanoid'
 import { produce } from 'immer'
-
-type SubscriberT = {
-  id: string
-  update: (newState: any) => void
-  derive?: (newState: any) => any
-  previousValue: any
-}
-
-type PreparedStoreT<DataT> = {
-  set: any
-  use: any
-  state: DataT
-  store: DatassStore<DataT>
-}
+import { middleware } from './middleware'
 
 const useId = () => {
   return useMemo(() => nanoid(), [])
 }
-
-type SetterT = (value: any) => void
 
 const setFromEventTargetValue = (set: SetterT) => (event: Event) => {
   const target = event?.target as HTMLInputElement
@@ -28,8 +14,9 @@ const setFromEventTargetValue = (set: SetterT) => (event: Event) => {
   if (event && event.target) set(value)
 }
 
-class Datass {
-  middlewares: any = []
+export class Datass {
+  middleware = middleware
+  stagedMiddleware: InnerMiddlewareFunctionT[] = []
 
   boolean = (initialValue: boolean) => {
     type PreparedT = PreparedStoreT<boolean>
@@ -59,7 +46,7 @@ class Datass {
 
     const use = store.use
     const preparedStore = this.prepareFinalStore<boolean>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<PreparedT>(preparedStore, this.middlewares)
+    const withMiddlewares = this.applyMiddlewares<boolean, PreparedT>(preparedStore)
 
     return withMiddlewares
   }
@@ -95,7 +82,7 @@ class Datass {
 
     const use = store.use
     const preparedStore = this.prepareFinalStore<number>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<PreparedT>(preparedStore, this.middlewares)
+    const withMiddlewares = this.applyMiddlewares<number, PreparedT>(preparedStore)
 
     return withMiddlewares
   }
@@ -128,7 +115,7 @@ class Datass {
 
     const use = store.use
     const preparedStore = this.prepareFinalStore<string>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<PreparedT>(preparedStore, this.middlewares)
+    const withMiddlewares = this.applyMiddlewares<string, PreparedT>(preparedStore)
 
     return withMiddlewares
   }
@@ -178,7 +165,7 @@ class Datass {
     use.find = (finder: (item: DataT) => boolean) => use((state: StateT) => state.find(finder))
 
     const preparedStore = this.prepareFinalStore<StateT>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<PreparedT>(preparedStore, this.middlewares)
+    const withMiddlewares = this.applyMiddlewares<StateT, PreparedT>(preparedStore)
 
     return withMiddlewares
   }
@@ -197,6 +184,10 @@ class Datass {
 
     set.by = (updaterFn: (draft: DataT) => void) => {
       store.replaceState((draft) => updaterFn(draft))
+    }
+
+    set.replace = (value: DataT) => {
+      store.replaceState(() => value)
     }
 
     set.byAsync = async (asyncUpdater: (state: DataT) => Promise<((draft: DataT) => void) | PartialT>) => {
@@ -218,14 +209,14 @@ class Datass {
 
     const use = store.use
     const preparedStore = this.prepareFinalStore<DataT>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<PreparedT>(preparedStore, this.middlewares)
+    const withMiddlewares = this.applyMiddlewares<DataT, PreparedT>(preparedStore)
 
     return withMiddlewares
   }
 
   withMiddleware = (...middlewares: any[]) => {
     const _datass = new Datass()
-    _datass.middlewares = middlewares
+    _datass.stagedMiddleware = middlewares
     return _datass
   }
 
@@ -242,19 +233,19 @@ class Datass {
     }
   }
 
-  applyMiddlewares = <StoreT>(preparedStore: StoreT, middlewares: Function[] = []) => {
-    return middlewares.reduce((final, middleware: any) => {
-      const storeWithMiddlewareApplied = middleware(final)
+  applyMiddlewares = <DataT, StoreT extends PreparedStoreT<DataT>>(preparedStore: StoreT) => {
+    return this.stagedMiddleware.reduce((final, middleware) => {
+      const storeWithMiddlewareApplied = middleware<DataT, StoreT>(final)
       return storeWithMiddlewareApplied
     }, preparedStore)
   }
 }
 
-class DatassStore<StateT> {
+export class DatassStore<StateT> {
   initialState: StateT
   currentState: StateT
   previousState: StateT
-  subscribers = new Map<string, SubscriberT>()
+  subscribers = new Map<string, SubscriberT<StateT>>()
 
   constructor(initialState: StateT) {
     this.initialState = initialState
@@ -288,7 +279,7 @@ class DatassStore<StateT> {
     this.subscribers.delete(id)
   }
 
-  subscribe = (subscriber: SubscriberT) => {
+  subscribe = (subscriber: SubscriberT<StateT>) => {
     this.subscribers.set(subscriber.id, subscriber)
     return () => this.unsubscribe(subscriber.id)
   }
