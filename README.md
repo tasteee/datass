@@ -1,6 +1,6 @@
 ![DATASS](/logo.svg)
 
-Datass is a state management library for React that focuses on developer experience. It is simple, flexible, lightweight, and it gives you all the power of sophisticated state management with none of the complexity.
+🦇 Data Super Store ("datass" for short) is a state management library for React that focuses on developer experience. It is simple, flexible, lightweight, and it gives you all the power of sophisticated state management with none of the complexity.
 
 - **Simple API**: Intuitive methods that just work
 - **Zero Configuration**: No providers, no complex setup
