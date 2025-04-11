@@ -2,7 +2,11 @@
 
 ## data super store
 
-```tsx
+### datass is super easy to use. you should try it.
+
+datass is a _shared_ state managment library for React. It is _super_ simple, intuitive, flexible, and robust.
+
+```ts
 import { datass } from 'datass'
 
 // datass.string stores
@@ -83,4 +87,42 @@ const $someState = customMiddlewareDatass.object<StoreT>({ foo: 'bar' })
 
 // And specific middleware configurations can be reused...
 const $otherState = customMiddlewareDatass.string('yolo')
+
+// All stores have these additional setter methods.
+const $store = datass.object({ name: 'Brooklyn', age: 123 })
+
+$store.set.by((draft) => {
+  draft.name = draft.name.toUpperCase()
+  draft.age += 10
+})
+
+$store.set.byAsync(async (draft) => {
+  const whatever = await something()
+  draft.name = whatever.value
+})
+
+// IMPORTANT: An object store's set method will
+// merge the provided object into the existing state
+// object to derive the new state object. Any other
+// store type's set method will replace the existing
+// state with the provided value.
+
+const $objectStore = datass.object({ foo: true, bar: true })
+$objectStore.set({ foo: false })
+$objectStore.state // { foo: false, bar: true }
+$objectStore.set({ bar: false })
+$objectStore.state // { foo: false, bar: false }
+
+const $arrayStore = datass.array([1, 2, 3])
+$arrayStore.set([0, 1, 2])
+$arrayStore.state // [0, 1, 2]
+
+// Array stores provide specific setter methods
+// to help manage the state.
+$arrayStore.set.append(3)
+$arrayStore.state // [0, 1, 2, 3]
+$arrayStore.set.prepend(-1)
+$arrayStore.state // [-1, 0, 1, 2, 3]
+$arrayStore.add(4, 5, 6)
+$arrayStore.state // [-1, 0, 1, 2, 3, 4, 5, 6]
 ```
