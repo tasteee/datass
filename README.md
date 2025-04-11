@@ -76,6 +76,16 @@ $objectStore.state // { username: 'tasteink' }
 $objectStore.use()
 ```
 
+# 🤍 Hey, real quick...
+
+🙏🤍🖤 I have almost a decade of experience in software, but my career, and subsequently my life, came crashing down when I was laid off in 2023 and fell into the recently-collapsed software job market.
+
+My partner, two kiddos and I lost our home, we lost everything we owned, and I've lived in my car for over a year now while they have been in another state staying with a relative on my partner's side of the family.
+
+I barelyyyy scrape by from day to day. I haven't had a hot meal in months. I am about to lose my Mac to the pawn shop. I am strugggggglingggg.
+
+# [Please pleaseee help if you can.](https://cash.app/$rokkiiii) 🤍🤍🤍
+
 ## Store Types
 
 ### String Store
