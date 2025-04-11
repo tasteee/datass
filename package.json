@@ -1,6 +1,6 @@
 {
   "name": "datass",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "author": {
     "name": "rokki",
     "email": "tasteink@proton.me",
@@ -100,6 +100,7 @@
   },
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
+    "immer": "^10.1.1",
     "just-safe-get": "^4.2.0",
     "just-safe-set": "^4.2.1"
   }
