@@ -1,23 +1,14 @@
 ![DATASS](/logo.svg)
 
-datass is a state management library for React that focuses on developer experience.
-It is simple as fuck, it is flexible, and it is super lightweight.
+Datass is a state management library for React that focuses on developer experience. It is simple, flexible, lightweight, and it gives you all the power of sophisticated state management with none of the complexity.
 
-# Datass: A Simple and Intuitive State Management Library for React
-
-## Why Datass?
-
-- **Simple API**: Intuitive methods that just work.
-- **Zero Configuration**: No providers, no complex setup.
-- **Flexible**: Works with any React app structure.
-- **Type-Safe**: Built with TypeScript for robust typing.
-- **Optimized**: Only re-renders when necessary.
-- **Extensible**: Customizable with middleware.
-- **Tiny**: Small bundle size with minimal dependencies.
-
-Datass gives you all the power of sophisticated state management with none of the complexity.
-
----
+- **Simple API**: Intuitive methods that just work
+- **Zero Configuration**: No providers, no complex setup
+- **Flexible**: Works with any React app structure
+- **Type-Safe**: Built with TypeScript for robust typing
+- **Optimized**: Only re-renders when necessary
+- **Extensible**: Customizable with middleware
+- **Tiny**: Small bundle size with minimal dependencies
 
 ## Installation
 
@@ -30,8 +21,6 @@ pnpm add datass
 # or
 bun install datass
 ```
-
----
 
 ## Basic Usage
 
@@ -50,8 +39,7 @@ console.log($counter.state) // 1
 
 // Use in components
 function Counter() {
-  const count = $counter.use()
-  return Count: {count}
+  return <p>Count: {$counter.use()}</p>
 }
 ```
 
@@ -73,8 +61,8 @@ console.log($userName.state) // 'guest'
 
 // Use in components
 function UserGreeting() {
-  const name = $userName.use()
-  return Hello, { name }!
+  $userName.use()
+  return <p>Hello, {$userName.state}</p>
 }
 ```
 
@@ -101,7 +89,8 @@ console.log($clickCount.state) // 0
 // Use in components
 function ClickCounter() {
   const count = $clickCount.use()
-  return  $clickCount.set.add(1)}>Clicks: {count}
+
+  return <button onClick={() => $isDarkMode.set.add(1)}>Clicks: {count}</button>
 }
 ```
 
@@ -125,11 +114,8 @@ console.log($isDarkMode.state) // false
 // Use in components
 function ThemeToggle() {
   const isDark = $isDarkMode.use()
-  return (
-     $isDarkMode.set.toggle()}>
-      Switch to {isDark ? 'light' : 'dark'} mode
 
-  )
+  return <button onClick={$isDarkMode.set.toggle()}>Switch to {isDark ? 'light' : 'dark'} mode</button>
 }
 ```
 
@@ -143,7 +129,7 @@ const initialTodos: TodoT[] = [
   { id: 2, label: 'Build amazing app', isComplete: false }
 ]
 
-const $todos = datass.array(initialTodos)
+const $todos = datass.array > TodoT > initialTodos
 
 // Replace entire array
 $todos.set([{ id: 3, label: 'New todo', isComplete: false }])
@@ -155,10 +141,7 @@ $todos.set.append({ id: 4, label: 'Another todo', isComplete: false })
 $todos.set.prepend({ id: 0, label: 'First todo', isComplete: false })
 
 // Add multiple items to end
-$todos.set.append(
-  { id: 5, label: 'Fifth todo', isComplete: false },
-  { id: 6, label: 'Sixth todo', isComplete: false }
-)
+$todos.set.append({ id: 5, label: 'Fifth todo', isComplete: false }, { id: 6, label: 'Sixth todo', isComplete: false })
 
 // Get current value
 console.log($todos.state) // Array of todos
@@ -166,17 +149,10 @@ console.log($todos.state) // Array of todos
 // Use in components
 function TodoList() {
   const todos = $todos.use()
-  return (
 
-      {todos.map(todo => (
-        {todo.label}
-      ))}
-
-  )
+  return todos.map((todo) => <p>{todo.label}</p>)
 }
 ```
-
----
 
 ## Advanced Features
 
@@ -197,8 +173,6 @@ $user.set.by((draft) => {
 })
 ```
 
----
-
 ### Async Updates
 
 ```tsx
@@ -209,12 +183,10 @@ async function fetchUsers() {
   await $users.set.byAsync(async () => {
     const response = await fetch('https://api.example.com/users')
     const data = await response.json()
-    return data // Directly return new state.
+    return data // Directly return new state
   })
 }
 ```
-
----
 
 ### Middleware
 
@@ -233,11 +205,10 @@ const loggingMiddleware = (store) => {
 
 // Apply middleware:
 const customDatass = datass.withMiddleware(loggingMiddleware)
-
 const $settings = customDatass.object({ theme: 'light', notifications: true })
 ```
 
 ## TODO
 
-- [ ] Provide useful middlewares.
-- [ ] Provide component-level state management hooks.
+- [ ] Provide useful middlewares
+- [ ] Provide component-level state management hooks
