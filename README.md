@@ -1,6 +1,6 @@
 ![DATASS](/logo.svg)
 
-🦇 Data Super Store ("datass" for short) is a state management library for React that focuses on developer experience. It is simple, flexible, lightweight, and it gives you all the power of sophisticated state management with none of the complexity.
+🦇 Data Super Store ("dataSS" for short) is a state management library for React that focuses on developer experience. It is simple, flexible, lightweight, and it gives you all the power of sophisticated state management with none of the complexity.
 
 - **Simple API**: Intuitive methods that just work
 - **Zero Configuration**: No providers, no complex setup
@@ -41,13 +41,15 @@ $numberStore.set.subtract(25)
 $numberStore.state // 225
 $numberStore.set.reset()
 $numberStore.state // 100
-$numberStore.use()
+$numberStore.use() // 100
+$numberStore.use((state) => state * 10) // 1000
 
 $stringStore.set('bar')
 $stringStore.state // 'bar'
 $stringStore.set.reset()
 $stringStore.state // 'foo'
-$stringStore.use()
+$stringStore.use() // 'foo'
+$stringStore.use((state) => state.toUpperCase()) // 'FOO'
 
 $booleanStore.set(false)
 $booleanStore.state // false
@@ -55,7 +57,10 @@ $booleanStore.toggle()
 $booleanStore.state // true
 $booleanStore.set.reset()
 $booleanStore.state // true
-$booleanStore.use()
+$booleanStore.use() // true
+
+const someOtherBoolean = false
+$booleanStore.use((state) => state === someOtherBoolean) // false
 
 $arrayStore.set([10, 11, 12])
 $arrayStore.state // [10, 11, 12]
@@ -65,7 +70,10 @@ $arrayStore.set.prepend(9)
 $arrayStore.state // [9, 10, 11, 12, 13]
 $arrayStore.set.reset()
 $arrayStore.state // [0, 1, 2]
-$arrayStore.use()
+$arrayStore.use() // [0, 1, 2]
+$arrayStore.use((state) => state.reverse()[0]) // 2
+$arrayStore.use.find((value) => value > 1) // 2
+$arrayStore.use.filter((value) => value > 0) // [1, 2]
 
 $objectStore.set({ age: 123 })
 $objectStore.state // { username: 'tasteink', age: 123 }
@@ -73,16 +81,13 @@ $objectStore.set.replace({ username: 'rokki' })
 $objectStore.state // { username: 'rokki' }
 $objectStore.set.reset()
 $objectStore.state // { username: 'tasteink' }
-$objectStore.use()
+$objectStore.use() // { username: 'tasteink' }
+$objectStore.use((state) => state.username) // 'tasteink'
 ```
 
 # 🤍 Hey, real quick...
 
-🙏🤍🖤 I have almost a decade of experience in software, but my career, and subsequently my life, came crashing down when I was laid off in 2023 and fell into the recently-collapsed software job market.
-
-My partner, two kiddos and I lost our home, we lost everything we owned, and I've lived in my car for over a year now while they have been in another state staying with a relative on my partner's side of the family.
-
-I barelyyyy scrape by from day to day. I haven't had a hot meal in months. I am about to lose my Mac to the pawn shop. I am strugggggglingggg.
+🙏🤍🖤 I have almost a decade of experience in software, but my career, and subsequently my life, came crashing down when I was laid off in 2023 and fell into the recently-collapsed software job market. I am struggling quite a bit to survive right now.
 
 # [Please pleaseee help if you can.](https://cash.app/$rokkiiii) 🤍🤍🤍
 
@@ -132,8 +137,9 @@ console.log($clickCount.state) // 0
 // Use in components
 function ClickCounter() {
   const count = $clickCount.use()
+  const add1 = () => $isDarkMode.set.add(1)
 
-  return <button onClick={() => $isDarkMode.set.add(1)}>Clicks: {count}</button>
+  return <button onClick={add1}>Clicks: {count}</button>
 }
 ```
 
@@ -157,8 +163,9 @@ console.log($isDarkMode.state) // false
 // Use in components
 function ThemeToggle() {
   const isDark = $isDarkMode.use()
+  const modeText = isDark ? 'light' : 'dark'
 
-  return <button onClick={$isDarkMode.set.toggle()}>Switch to {isDark ? 'light' : 'dark'} mode</button>
+  return <button onClick={$isDarkMode.set.toggle}>Switch to {modeText} mode</button>
 }
 ```
 
@@ -193,13 +200,23 @@ console.log($todos.state) // Array of todos
 function TodoList() {
   const todos = $todos.use()
 
-  return todos.map((todo) => <p>{todo.label}</p>)
+  return (
+    <div>
+      {todos.map((todo) => (
+        <p>{todo.label}</p>
+      ))}
+    </div>
+  )
 }
+
+// Array stores also have convenience methods
+// for selecting derived state.
+
+const completedTodos = $todos.use.filter((todo) => todo.isComplete)
+const firstIncompleteTodo = $todos.use.find((todo) => !todo.isComplete)
 ```
 
-## Advanced Features
-
-### Immer-powered Updates
+## Immer-powered Updates
 
 ```tsx
 const $user = datass.object({
@@ -216,7 +233,7 @@ $user.set.by((draft) => {
 })
 ```
 
-### Async Updates
+## Async Updates
 
 ```tsx
 const $users = datass.array([])
@@ -260,7 +277,7 @@ import { datass } from 'datass'
 
 const undoRedoMiddleware = datass.middleware.undoRedo({ maxHistory: 50 })
 const enhancedDatass = datass.withMiddleware(undoRedoMiddleware)
-const $myStore = datass.array([0, 5, 10])
+const $myStore = enhancedDatass.array([0, 5, 10])
 $myStore.set.append(15)
 $myStore.set.undo()
 $myStore.set.redo()
@@ -268,4 +285,5 @@ $myStore.set.redo()
 
 ## TODO
 
+- [ ] Improve documentation on custom middleware.
 - [ ] Provide component-level state management hooks
