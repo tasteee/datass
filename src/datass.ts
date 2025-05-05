@@ -1,46 +1,53 @@
 import {
-  SetterT,
+  BaseSetterT,
+  BooleanSetterT,
+  NumberSetterT,
+  StringSetterT,
+  ArraySetterT,
+  ObjectSetterT,
+  BaseUseT,
+  ArrayUseT,
   PreparedStoreT,
-  SubscriberT,
-  MiddlewareFunctionT,
-  InnerMiddlewareFunctionT,
-  AsyncSetterT,
-  DrafterT,
-  BooleanDrafterT,
   PreparedBooleanStoreT,
   PreparedNumberStoreT,
-  NumberDrafterT,
   PreparedStringStoreT,
-  StringDrafterT
+  PreparedArrayStoreT,
+  PreparedObjectStoreT,
+  SubscriberT,
+  InnerMiddlewareFunctionT,
+  AsyncSetterT,
+  DrafterT
 } from './global'
+
 import { useState, useEffect, useMemo } from 'react'
-import { nanoid } from 'nanoid'
 import { produce } from 'immer'
 import { middleware } from './middleware'
 
-const useId = () => {
-  return useMemo(() => nanoid(), [])
+const createId = () => {
+  return crypto.randomUUID()
 }
 
-const setFromEventTargetValue = (set: SetterT) => (event: Event) => {
+const useId = () => {
+  return useMemo(createId, [])
+}
+
+const setFromEventTargetValue = (set: (value: any) => void) => (event: Event) => {
   const target = event?.target as HTMLInputElement
   const value = target?.value
   if (event && event.target) set(value)
 }
 
-const createByAsync = <DataT>(store) => {
+const createByAsync = <DataT>(store: DatassStore<DataT>) => {
   return async (asyncUpdater: AsyncSetterT<DataT>) => {
     try {
       const result = await asyncUpdater(store.state)
       const isResultFunction = typeof result === 'function'
       if (!isResultFunction) store.replaceState(result)
-
       if (isResultFunction) {
         const drafter = result as Function
-        const setter = (draft) => drafter(draft)
+        const setter = (draft: DataT) => drafter(draft)
         store.replaceState(setter)
       }
-
       return true
     } catch (error) {
       console.error('[datass: error in async update]', error)
@@ -49,7 +56,7 @@ const createByAsync = <DataT>(store) => {
   }
 }
 
-const createSetBy = <DataT>(store) => {
+const createSetBy = <DataT>(store: DatassStore<DataT>) => {
   return (updaterFn: (draft: DataT) => void | DataT) => {
     store.replaceState((draft) => updaterFn(draft))
   }
@@ -59,105 +66,138 @@ export class Datass {
   middleware = middleware
   stagedMiddleware: InnerMiddlewareFunctionT[] = []
 
-  boolean = (initialValue: boolean) => {
-    type PreparedT = PreparedStoreT<boolean>
+  boolean = (initialValue: boolean): PreparedBooleanStoreT => {
     const store = new DatassStore<boolean>(initialValue)
-    const set = (value: boolean) => store.replaceState(!!value)
+    
+    const set = ((value: boolean) => store.replaceState(!!value)) as BooleanSetterT
     set.toggle = () => set(!store.state)
     set.byAsync = createByAsync<boolean>(store)
     set.by = createSetBy<boolean>(store)
-    const use = store.use
-    const preparedStore = this.prepareFinalStore<boolean>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<boolean, PreparedT>(preparedStore)
-    return withMiddlewares
+    set.reset = () => set(store.initialState)
+    
+    const use = store.use as BaseUseT<boolean>
+    
+    const preparedStore: PreparedStoreT<boolean, BooleanSetterT> = {
+      set,
+      use,
+      store,
+      get state() {
+        return store.state
+      }
+    }
+    
+    const withMiddlewares = this.applyMiddlewares<boolean, BooleanSetterT, BaseUseT<boolean>>(preparedStore)
+    return withMiddlewares as PreparedBooleanStoreT
   }
 
-  number = (initialValue: number) => {
-    type PreparedT = PreparedStoreT<number>
+  number = (initialValue: number): PreparedNumberStoreT => {
     const store = new DatassStore<number>(initialValue)
+    
     const asNumber = (value: any) => (typeof value === 'number' ? value : Number(value))
-    const set = (value: number) => store.replaceState(asNumber(value))
+    const set = ((value: number) => store.replaceState(asNumber(value))) as NumberSetterT
     set.fromEventTarget = setFromEventTargetValue(set)
     set.add = (value: number) => set(store.state + value)
     set.subtract = (value: number) => set(store.state - value)
     set.byAsync = createByAsync<number>(store)
     set.by = createSetBy<number>(store)
-    const use = store.use
-    const preparedStore = this.prepareFinalStore<number>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<number, PreparedT>(preparedStore)
-    return withMiddlewares
-  }
-
-  string = (initialValue: string) => {
-    type PreparedT = PreparedStoreT<string>
-    const store = new DatassStore<string>(initialValue)
-    const set = (value: string) => store.replaceState(value)
-    set.fromEventTarget = setFromEventTargetValue(set)
-    set.byAsync = createByAsync<string>(store)
-    set.by = createSetBy<string>(store)
-    const use = store.use
-    const preparedStore = this.prepareFinalStore<string>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<string, PreparedT>(preparedStore)
-    return withMiddlewares
-  }
-
-  array = <DataT>(initialValue: DataT[]) => {
-    type StateT = DataT[]
-    type PreparedT = PreparedStoreT<StateT>
-
-    type UseT = {
-      (...args: any): void
-      find(finder: any): void
-      filter(filter: any): void
+    set.reset = () => set(store.initialState)
+    
+    const use = store.use as BaseUseT<number>
+    
+    const preparedStore: PreparedStoreT<number, NumberSetterT> = {
+      set,
+      use,
+      store,
+      get state() {
+        return store.state
+      }
     }
+    
+    const withMiddlewares = this.applyMiddlewares<number, NumberSetterT, BaseUseT<number>>(preparedStore)
+    return withMiddlewares as PreparedNumberStoreT
+  }
 
-    const store = new DatassStore<StateT>(initialValue)
-    const set = (value: StateT) => store.replaceState(value)
+  string = <DataT extends string>(initialValue: DataT): PreparedStringStoreT => {
+    const store = new DatassStore<DataT>(initialValue as DataT)
+    
+    const set = ((value: DataT) => store.replaceState(value)) as StringSetterT
+    set.fromEventTarget = setFromEventTargetValue(set)
+    set.byAsync = createByAsync<DataT>(store)
+    set.by = createSetBy<DataT>(store)
+    set.reset = () => set(store.initialState)
+    
+    const use = store.use as BaseUseT<DataT>
+    
+    const preparedStore: PreparedStoreT<DataT, StringSetterT> = {
+      set,
+      use,
+      store,
+      get state() {
+        return store.state
+      }
+    }
+    
+    const withMiddlewares = this.applyMiddlewares<string, StringSetterT, BaseUseT<string>>(preparedStore)
+    return withMiddlewares as PreparedStringStoreT
+  }
 
+  array = <DataT>(initialValue: DataT[]): PreparedArrayStoreT<DataT> => {
+    const store = new DatassStore<DataT[]>(initialValue)
+    
+    const set = ((value: DataT[]) => store.replaceState(value)) as ArraySetterT<DataT>
     set.prepend = (...items: DataT[]) => {
       set.by((draft) => {
         draft.unshift(...items)
       })
     }
-
     set.append = (...items: DataT[]) => {
       set.by((draft) => {
         draft.push(...items)
       })
     }
-
-    set.byAsync = createByAsync<StateT>(store)
-    set.by = createSetBy<StateT>(store)
-    const use: UseT = (...args: any) => store.use(...args)
-    use.find = (finder: (item: DataT) => boolean) => use((state: StateT) => state.find(finder))
-    use.filter = (filter: (item: DataT) => boolean) => use((state: StateT) => state.find(filter))
-    const preparedStore = this.prepareFinalStore<StateT>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<StateT, PreparedT>(preparedStore)
-    return withMiddlewares
+    set.byAsync = createByAsync<DataT[]>(store)
+    set.by = createSetBy<DataT[]>(store)
+    set.reset = () => set(store.initialState)
+    
+    const use = store.use as unknown as ArrayUseT<DataT>
+    use.find = (finder: (item: DataT) => boolean) => 
+      use((state: DataT[]) => state.find(finder))
+    use.filter = (filter: (item: DataT) => boolean) => 
+      use((state: DataT[]) => state.filter(filter)[0])
+    
+    const preparedStore: PreparedStoreT<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>> = {
+      set,
+      use,
+      store,
+      get state() {
+        return store.state
+      }
+    }
+    
+    const withMiddlewares = this.applyMiddlewares<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>>(preparedStore)
+    return withMiddlewares as PreparedArrayStoreT<DataT>
   }
 
-  object = <DataT>(initialValue: DataT) => {
-    type PartialT = Partial<DataT>
-    type PreparedT = PreparedStoreT<DataT>
+  object = <DataT extends object>(initialValue: DataT): PreparedObjectStoreT<DataT> => {
     const store = new DatassStore<DataT>(initialValue)
-    // For objects, set merges the value with current state
-    const set = (value: PartialT) => {
+    
+    // Define set function to accept partial updates
+    const set = function(value: Partial<DataT>) {
       const mergedState = { ...store.state, ...value }
       store.replaceState(mergedState as DataT)
-    }
-
+    } as ObjectSetterT<DataT>
+    
     set.replace = (value: DataT) => {
       store.replaceState(() => value)
     }
-
-    set.byAsync = async (asyncUpdater: (state: DataT) => Promise<((draft: DataT) => void) | PartialT>) => {
+    
+    set.byAsync = async (asyncUpdater: AsyncSetterT<DataT>) => {
       try {
         const result = await asyncUpdater(store.state)
         if (typeof result === 'function') {
           store.replaceState((draft) => (result as Function)(draft))
         } else {
-          // If result is an object, merge it with current state
-          const mergedState = { ...store.state, ...(result as PartialT) }
+          const mergedState = { ...store.state, ...(result as Partial<DataT>) }
           store.replaceState(mergedState as DataT)
         }
         return true
@@ -166,24 +206,13 @@ export class Datass {
         return false
       }
     }
-
-    set.by = createSetBy<number>(store)
-    const use = store.use
-    const preparedStore = this.prepareFinalStore<DataT>(store, set, use)
-    const withMiddlewares = this.applyMiddlewares<DataT, PreparedT>(preparedStore)
-    return withMiddlewares
-  }
-
-  withMiddleware = (...middlewares: any[]) => {
-    const _datass = new Datass()
-    _datass.stagedMiddleware = middlewares
-    return _datass
-  }
-
-  prepareFinalStore = <DataT>(store: DatassStore<DataT>, set: any, use: any) => {
-    set.reset = () => set(store.initialState)
-
-    return {
+    
+    set.by = createSetBy<DataT>(store)
+    set.reset = () => set.replace(store.initialState)
+    
+    const use = store.use as BaseUseT<DataT>
+    
+    const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>> = {
       set,
       use,
       store,
@@ -191,11 +220,23 @@ export class Datass {
         return store.state
       }
     }
+    
+    const withMiddlewares = this.applyMiddlewares<DataT, ObjectSetterT<DataT>, BaseUseT<DataT>>(preparedStore)
+    return withMiddlewares as PreparedObjectStoreT<DataT>
   }
 
-  applyMiddlewares = <DataT, StoreT extends PreparedStoreT<DataT>>(preparedStore: StoreT) => {
+  withMiddleware = (...middlewares: InnerMiddlewareFunctionT[]) => {
+    const _datass = new Datass()
+    _datass.stagedMiddleware = middlewares
+    return _datass
+  }
+
+  private applyMiddlewares<DataT, SetT extends BaseSetterT<DataT>, UseT>(
+    preparedStore: PreparedStoreT<DataT, SetT, UseT>
+  ): PreparedStoreT<DataT, SetT, UseT> {
     return this.stagedMiddleware.reduce((final, middleware) => {
-      const storeWithMiddlewareApplied = middleware<DataT, StoreT>(final)
+      // @ts-ignore
+      const storeWithMiddlewareApplied = middleware(final) as PreparedStoreT<DataT, SetT, UseT>
       return storeWithMiddlewareApplied
     }, preparedStore)
   }

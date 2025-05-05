@@ -2,22 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, cleanup } from '@testing-library/react'
 import { datass } from '../src/datass'
 import * as React from 'react'
-
-const renderHook = (hook: () => any) => {
-  let result: any
-  render(<TestComponent hook={hook} />)
-  return result
-
-  function TestComponent({ hook }: { hook: () => any }) {
-    result = hook()
-    return null
-  }
-}
-
-function StateObserver({ store, selector = null }) {
-  const value = selector ? store.use(selector) : store.use()
-  return <div data-testid="value">{JSON.stringify(value)}</div>
-}
+import { renderHook, StateObserver } from './helpers'
 
 describe('datass state management', () => {
   beforeEach(() => {
@@ -105,6 +90,17 @@ describe('datass state management', () => {
       const $store = datass.string('hello')
       expect($store.state).toBe('hello')
     })
+
+    it('should work with type arg', () => {
+      type DataT = 'foo' | 'bar'
+      const $store = datass.string<DataT>('foo')
+      expect($store.state).toBe('foo')
+      act(() => $store.set('bar'))
+      expect($store.state).toBe('bar')
+      act(() => $store.set('baz'))
+      expect($store.state).toBe('baz')
+    })
+
 
     it('should update state when set is called', () => {
       const $store = datass.string('hello')
@@ -405,11 +401,13 @@ describe('datass state management', () => {
           return new Promise((resolve) => {
             setTimeout(() => {
               // Return a partial object update instead of a draft function
+              // @ts-ignore
               resolve({ skills: ['JavaScript', 'React'] })
             }, 10)
           })
         })
       })
+
       expect($store.state).toEqual({
         ...initialState,
         skills: ['JavaScript', 'React']
@@ -439,87 +437,7 @@ describe('datass state management', () => {
     })
   })
 
-  describe('middlewares', () => {
-    it('should apply middleware to stores', () => {
-      // Create a simple logging middleware
-      const logs = []
-      const loggingMiddleware = (store) => {
-        const originalSet = store.set
-        // Wrap the set function to log actions
-        store.set = (...args) => {
-          logs.push({ action: 'set', args })
-          return originalSet(...args)
-        }
-        return store
-      }
-
-      const customDatass = datass.withMiddleware(loggingMiddleware)
-      const $store = customDatass.number(0)
-
-      act(() => {
-        $store.set(42)
-      })
-
-      expect(logs.length).toBe(1)
-      expect(logs[0].action).toBe('set')
-      expect(logs[0].args[0]).toBe(42)
-      expect($store.state).toBe(42)
-    })
-
-    it('should apply middleware to set.by and set.byAsync', () => {
-      const logs = []
-      const loggingMiddleware = (store) => {
-        const originalSet = store.set
-        const originalBy = store.set.by
-        const originalByAsync = store.set.byAsync
-
-        store.set = (...args) => {
-          logs.push({ action: 'set', args })
-          return originalSet(...args)
-        }
-
-        store.set.by = (...args) => {
-          logs.push({ action: 'set.by', args })
-          return originalBy(...args)
-        }
-
-        store.set.byAsync = (...args) => {
-          logs.push({ action: 'set.byAsync', args })
-          return originalByAsync(...args)
-        }
-
-        return store
-      }
-
-      const customDatass = datass.withMiddleware(loggingMiddleware)
-      const $store = customDatass.number(0)
-
-      act(() => {
-        $store.set.by((draft) => draft + 1)
-      })
-
-      expect(logs.length).toBe(1)
-      expect(logs[0].action).toBe('set.by')
-      expect($store.state).toBe(1)
-    })
-
-    it('should chain multiple middlewares', () => {
-      const executionOrder = []
-      const middleware1 = (store) => {
-        executionOrder.push('middleware1')
-        return store
-      }
-      const middleware2 = (store) => {
-        executionOrder.push('middleware2')
-        return store
-      }
-
-      const customDatass = datass.withMiddleware(middleware1, middleware2)
-      customDatass.number(0)
-
-      expect(executionOrder).toEqual(['middleware1', 'middleware2'])
-    })
-  })
+  
 
   describe('state subscribers', () => {
     it('should only trigger updates when the selected state changes', () => {

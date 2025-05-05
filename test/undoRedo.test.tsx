@@ -2,22 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, cleanup, screen } from '@testing-library/react'
 import { datass } from '../src/datass'
 import * as React from 'react'
-
-const renderHook = (hook: () => any) => {
-  let result: any
-  render(<TestComponent hook={hook} />)
-  return result
-
-  function TestComponent({ hook }: { hook: () => any }) {
-    result = hook()
-    return null
-  }
-}
-
-function StateObserver({ store, selector = null }) {
-  const value = selector ? store.use(selector) : store.use()
-  return <div data-testid="value">{JSON.stringify(value)}</div>
-}
+import { StateObserver } from './helpers'
 
 describe('undoRedo middleware', () => {
   const undoRedoMiddleware = datass.middleware.undoRedo()

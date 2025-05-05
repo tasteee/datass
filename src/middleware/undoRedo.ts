@@ -11,26 +11,30 @@ const DEFAULT_OPTIONS = {
 export const undoRedoMiddleware = (options: OptionsT = {}) => {
   const settings = { ...DEFAULT_OPTIONS, ...options }
 
+  type EnhancedSetT<StoreT extends { set: any }> = StoreT['set'] & {
+    (arg: any): void
+    replace?: any
+    clearHistory: () => void
+    getHistorySize: () => { past: number, future: number }
+    canUndo: () => boolean
+    canRedo: () => boolean
+    redo: () => void
+    undo: () => void
+  }
+
+
   return <DataT, StoreT extends PreparedStoreT<DataT>>(store: StoreT): StoreT => {
-    type EnhancedSetT = StoreT['set'] & {
-      (arg: any): void
-      clearHistory: any
-      getHistorySize: any
-      canUndo: any
-      canRedo: any
-      redo: any
-      undo: any
-    }
+    type InnerEnhancedSet = EnhancedSetT<StoreT>
 
     type EnhancedStoreT = StoreT & {
-      set: EnhancedSetT
+      set: InnerEnhancedSet 
     }
 
-    const originalSet = store.set
+    const originalSet = store.set as InnerEnhancedSet
 
     // Only object stores have set.replace method.
     // Any other store uses set method to replace state.
-    const replaceState = store.set?.replace || store.set
+    const replaceState = originalSet?.replace || store.set
 
     // Store history
     const history: DataT[] = []
@@ -108,10 +112,12 @@ export const undoRedoMiddleware = (options: OptionsT = {}) => {
     enhancedSet.canRedo = () => future.length > 0
 
     // Method to get history/future state counts
-    enhancedSet.getHistorySize = () => ({
-      past: history.length,
-      future: future.length
-    })
+    enhancedSet.getHistorySize = () => {
+      return {
+        past: history.length,
+        future: future.length
+      }
+    }
 
     // Method to clear history
     enhancedSet.clearHistory = () => {
@@ -119,7 +125,7 @@ export const undoRedoMiddleware = (options: OptionsT = {}) => {
       future.length = 0
     }
 
-    store.set = enhancedSet as EnhancedSetT
+    store.set = enhancedSet as InnerEnhancedSet
     return store as EnhancedStoreT
   }
 }
