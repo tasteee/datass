@@ -1,5 +1,12 @@
 import { DatassStore } from './datass'
 
+export type WatchReactionT<T> = (oldValue: T, newValue: T) => void;
+
+export interface WatchOptionsT<T, S = T> {
+  selector: (state: T) => S;
+  reaction: (oldValue: S, newValue: S) => void;
+}
+
 // Base setter type with common methods
 export type BaseSetterT<T> = {
   (value: T): void
@@ -61,6 +68,7 @@ export type PreparedStoreT<DataT, SetterType = BaseSetterT<DataT>, UseType = Bas
   use: UseType
   state: DataT
   store: DatassStore<DataT>
+  watch: (reactionOrOptions: WatchReactionT<DataT> | WatchOptionsT<DataT, any>) => () => void;
 }
 
 // Specific prepared store types

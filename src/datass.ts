@@ -16,7 +16,9 @@ import {
   SubscriberT,
   InnerMiddlewareFunctionT,
   AsyncSetterT,
-  DrafterT
+  DrafterT,
+  WatchReactionT,
+  WatchOptionsT
 } from './global'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -78,6 +80,7 @@ export class Datass {
     const use = store.use as BaseUseT<boolean>
     
     const preparedStore: PreparedStoreT<boolean, BooleanSetterT> = {
+      watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
       use,
       store,
@@ -105,6 +108,7 @@ export class Datass {
     const use = store.use as BaseUseT<number>
     
     const preparedStore: PreparedStoreT<number, NumberSetterT> = {
+      watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
       use,
       store,
@@ -129,6 +133,7 @@ export class Datass {
     const use = store.use as BaseUseT<DataT>
     
     const preparedStore: PreparedStoreT<DataT, StringSetterT> = {
+      watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
       use,
       store,
@@ -166,6 +171,7 @@ export class Datass {
       use((state: DataT[]) => state.filter(filter)[0])
     
     const preparedStore: PreparedStoreT<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>> = {
+      watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
       use,
       store,
@@ -213,6 +219,7 @@ export class Datass {
     const use = store.use as BaseUseT<DataT>
     
     const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>> = {
+      watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
       use,
       store,
@@ -247,6 +254,39 @@ export class DatassStore<StateT> {
   currentState: StateT
   previousState: StateT
   subscribers = new Map<string, SubscriberT<StateT>>()
+
+  watchers: Map<string, {
+    selector?: (state: StateT) => any;
+    reaction: (oldValue: any, newValue: any) => void;
+    previousValue?: any;
+  }> = new Map();
+
+  watch = (reactionOrOptions: WatchReactionT<StateT> | WatchOptionsT<StateT, any>) => {
+    const id = crypto.randomUUID();
+    
+    if (typeof reactionOrOptions === 'function') {
+      // Simple watcher with direct reaction
+      this.watchers.set(id, {
+        reaction: reactionOrOptions,
+        previousValue: this.currentState
+      });
+    } else {
+      // Watcher with selector
+      const { selector, reaction } = reactionOrOptions;
+      const selectedValue = selector(this.currentState);
+      
+      this.watchers.set(id, {
+        selector,
+        reaction,
+        previousValue: selectedValue
+      });
+    }
+    
+    // Return unsubscribe function
+    return () => {
+      this.watchers.delete(id);
+    };
+  }
 
   constructor(initialState: StateT) {
     this.initialState = initialState
@@ -286,20 +326,19 @@ export class DatassStore<StateT> {
   }
 
   replaceState = (newStateOrUpdater: StateT | ((draft: StateT) => void | StateT)) => {
-    let newState: StateT
-
+    let newState: StateT;
     if (typeof newStateOrUpdater === 'function') {
-      // Use immer's produce for updater functions
-      newState = produce(this.currentState, newStateOrUpdater as (draft: StateT) => void | StateT)
+      newState = produce(this.currentState, newStateOrUpdater as (draft: StateT) => void | StateT);
     } else {
-      newState = newStateOrUpdater
+      newState = newStateOrUpdater;
     }
 
     // Skip update if state hasn't changed
-    if (newState === this.currentState) return
+    if (newState === this.currentState) return;
 
-    this.previousState = this.currentState
-    this.currentState = newState
+    const oldState = this.currentState;
+    this.previousState = this.currentState;
+    this.currentState = newState;
 
     // Notify all subscribers about the state change
     this.subscribers.forEach((subscriber) => {
@@ -317,6 +356,24 @@ export class DatassStore<StateT> {
         subscriber.previousValue = newState
       }
     })
+  
+    // Notify all watchers about the state change
+    this.watchers.forEach((watcher, id) => {
+      if (watcher.selector) {
+        // For watchers with selectors
+        const newSelectedValue = watcher.selector(newState);
+        const oldSelectedValue = watcher.previousValue;
+        
+        if (newSelectedValue !== oldSelectedValue) {
+          watcher.reaction(oldSelectedValue, newSelectedValue);
+          watcher.previousValue = newSelectedValue;
+        }
+      } else {
+        // For watchers tracking the full state
+        watcher.reaction(oldState, newState);
+        watcher.previousValue = newState;
+      }
+    });
   }
 }
 

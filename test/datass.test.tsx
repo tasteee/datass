@@ -14,6 +14,42 @@ describe('datass state management', () => {
     cleanup()
   })
 
+  describe('store.watch', () => {
+    it('should react to string state changes', () => {
+      const $store = datass.string('')
+      let tick = 0
+      $store.watch((oldValue, newValue) => tick++)
+      $store.set('STUB')
+      expect(tick).toBe(1)
+    })
+
+    it('should react to boolean state changes', () => {
+      const $store = datass.boolean(false)
+      let tick = 0
+      $store.watch((oldValue, newValue) => tick++)
+      $store.set(true)
+      expect(tick).toBe(1)
+      $store.set.toggle()
+      expect(tick).toBe(2)
+    })
+
+    it('should react only to selector return value', () => {
+      const $store = datass.object({ a: true, b: 0 })
+      let tick = 0
+      $store.watch({
+        selector: (state) => state.b > 0,
+        reaction: (oldB, newB) => tick++
+      })
+
+      $store.set({ a: false })
+      expect(tick).toBe(0)
+      $store.set({ b: -20 })
+      expect(tick).toBe(0)
+      $store.set({ b: 50 })
+      expect(tick).toBe(1)
+    })
+  })
+
   describe('boolean store', () => {
     it('should initialize with the provided value', () => {
       const $store = datass.boolean(true)
@@ -100,7 +136,6 @@ describe('datass state management', () => {
       act(() => $store.set('baz'))
       expect($store.state).toBe('baz')
     })
-
 
     it('should update state when set is called', () => {
       const $store = datass.string('hello')
@@ -436,8 +471,6 @@ describe('datass state management', () => {
       expect(getByTestId('value').textContent).toBe('"Jane"')
     })
   })
-
-  
 
   describe('state subscribers', () => {
     it('should only trigger updates when the selected state changes', () => {
