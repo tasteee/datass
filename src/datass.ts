@@ -18,12 +18,15 @@ import {
   AsyncSetterT,
   DrafterT,
   WatchReactionT,
-  WatchOptionsT
+  WatchOptionsT,
+  ObjectUseT
 } from './global'
 
 import { useState, useEffect, useMemo } from 'react'
 import { produce } from 'immer'
 import { middleware } from './middleware'
+import safeGet from 'just-safe-get'
+import safeSet from 'just-safe-set'
 
 const createId = () => {
   return crypto.randomUUID()
@@ -64,21 +67,23 @@ const createSetBy = <DataT>(store: DatassStore<DataT>) => {
   }
 }
 
+type DraftFnT<StateT> = (draft: StateT) => void | StateT
+
 export class Datass {
   middleware = middleware
   stagedMiddleware: InnerMiddlewareFunctionT[] = []
 
   boolean = (initialValue: boolean): PreparedBooleanStoreT => {
     const store = new DatassStore<boolean>(initialValue)
-    
+
     const set = ((value: boolean) => store.replaceState(!!value)) as BooleanSetterT
     set.toggle = () => set(!store.state)
     set.byAsync = createByAsync<boolean>(store)
     set.by = createSetBy<boolean>(store)
     set.reset = () => set(store.initialState)
-    
+
     const use = store.use as BaseUseT<boolean>
-    
+
     const preparedStore: PreparedStoreT<boolean, BooleanSetterT> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
@@ -88,14 +93,14 @@ export class Datass {
         return store.state
       }
     }
-    
+
     const withMiddlewares = this.applyMiddlewares<boolean, BooleanSetterT, BaseUseT<boolean>>(preparedStore)
     return withMiddlewares as PreparedBooleanStoreT
   }
 
   number = (initialValue: number): PreparedNumberStoreT => {
     const store = new DatassStore<number>(initialValue)
-    
+
     const asNumber = (value: any) => (typeof value === 'number' ? value : Number(value))
     const set = ((value: number) => store.replaceState(asNumber(value))) as NumberSetterT
     set.fromEventTarget = setFromEventTargetValue(set)
@@ -104,9 +109,9 @@ export class Datass {
     set.byAsync = createByAsync<number>(store)
     set.by = createSetBy<number>(store)
     set.reset = () => set(store.initialState)
-    
+
     const use = store.use as BaseUseT<number>
-    
+
     const preparedStore: PreparedStoreT<number, NumberSetterT> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
@@ -116,22 +121,22 @@ export class Datass {
         return store.state
       }
     }
-    
+
     const withMiddlewares = this.applyMiddlewares<number, NumberSetterT, BaseUseT<number>>(preparedStore)
     return withMiddlewares as PreparedNumberStoreT
   }
 
   string = <DataT extends string>(initialValue: DataT): PreparedStringStoreT => {
     const store = new DatassStore<DataT>(initialValue as DataT)
-    
+
     const set = ((value: DataT) => store.replaceState(value)) as StringSetterT
     set.fromEventTarget = setFromEventTargetValue(set)
     set.byAsync = createByAsync<DataT>(store)
     set.by = createSetBy<DataT>(store)
     set.reset = () => set(store.initialState)
-    
+
     const use = store.use as BaseUseT<DataT>
-    
+
     const preparedStore: PreparedStoreT<DataT, StringSetterT> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
@@ -141,35 +146,53 @@ export class Datass {
         return store.state
       }
     }
-    
+
     const withMiddlewares = this.applyMiddlewares<string, StringSetterT, BaseUseT<string>>(preparedStore)
     return withMiddlewares as PreparedStringStoreT
   }
 
   array = <DataT>(initialValue: DataT[]): PreparedArrayStoreT<DataT> => {
     const store = new DatassStore<DataT[]>(initialValue)
-    
-    const set = ((value: DataT[]) => store.replaceState(value)) as ArraySetterT<DataT>
+
+    const set = ((value: DataT[]) => {
+      return store.replaceState(value)
+    }) as ArraySetterT<DataT>
+
     set.prepend = (...items: DataT[]) => {
       set.by((draft) => {
         draft.unshift(...items)
       })
     }
+
     set.append = (...items: DataT[]) => {
       set.by((draft) => {
         draft.push(...items)
       })
     }
+
     set.byAsync = createByAsync<DataT[]>(store)
     set.by = createSetBy<DataT[]>(store)
     set.reset = () => set(store.initialState)
-    
+
     const use = store.use as unknown as ArrayUseT<DataT>
-    use.find = (finder: (item: DataT) => boolean) => 
-      use((state: DataT[]) => state.find(finder))
-    use.filter = (filter: (item: DataT) => boolean) => 
-      use((state: DataT[]) => state.filter(filter)[0])
-    
+
+    // TODO: test $array.use.find(...)
+    use.find = <ValueT>(finder: (item: DataT) => boolean) => {
+      return use((state: DataT[]) => {
+        const result = state.find(finder)
+        return result
+      })
+    }
+
+    // TODO: test $array.use.filter(...)
+    use.filter = (filter: (item: DataT) => boolean) => {
+      return use((state: DataT[]) => state.filter(filter))
+    }
+
+    use.map = <ItemT>(mapper: (item: DataT) => ItemT) => {
+      return use((state: DataT[]) => state.map(mapper))
+    }
+
     const preparedStore: PreparedStoreT<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
@@ -179,24 +202,24 @@ export class Datass {
         return store.state
       }
     }
-    
+
     const withMiddlewares = this.applyMiddlewares<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>>(preparedStore)
     return withMiddlewares as PreparedArrayStoreT<DataT>
   }
 
   object = <DataT extends object>(initialValue: DataT): PreparedObjectStoreT<DataT> => {
     const store = new DatassStore<DataT>(initialValue)
-    
+
     // Define set function to accept partial updates
-    const set = function(value: Partial<DataT>) {
+    const set = function (value: Partial<DataT>) {
       const mergedState = { ...store.state, ...value }
       store.replaceState(mergedState as DataT)
     } as ObjectSetterT<DataT>
-    
+
     set.replace = (value: DataT) => {
       store.replaceState(() => value)
     }
-    
+
     set.byAsync = async (asyncUpdater: AsyncSetterT<DataT>) => {
       try {
         const result = await asyncUpdater(store.state)
@@ -212,12 +235,22 @@ export class Datass {
         return false
       }
     }
-    
+
     set.by = createSetBy<DataT>(store)
     set.reset = () => set.replace(store.initialState)
-    
-    const use = store.use as BaseUseT<DataT>
-    
+
+    set.lookup = (path: string, value) => {
+      store.replaceState((draft) => {
+        safeSet(draft, path, value)
+      })
+    }
+
+    const use = store.use as ObjectUseT<DataT>
+
+    use.lookup = <ValueT>(path: string, fallback?: ValueT) => {
+      return use((state) => safeGet(state, path, fallback))
+    }
+
     const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
@@ -227,7 +260,7 @@ export class Datass {
         return store.state
       }
     }
-    
+
     const withMiddlewares = this.applyMiddlewares<DataT, ObjectSetterT<DataT>, BaseUseT<DataT>>(preparedStore)
     return withMiddlewares as PreparedObjectStoreT<DataT>
   }
@@ -255,37 +288,40 @@ export class DatassStore<StateT> {
   previousState: StateT
   subscribers = new Map<string, SubscriberT<StateT>>()
 
-  watchers: Map<string, {
-    selector?: (state: StateT) => any;
-    reaction: (oldValue: any, newValue: any) => void;
-    previousValue?: any;
-  }> = new Map();
+  watchers: Map<
+    string,
+    {
+      selector?: (state: StateT) => any
+      reaction: (oldValue: any, newValue: any) => void
+      previousValue?: any
+    }
+  > = new Map()
 
   watch = (reactionOrOptions: WatchReactionT<StateT> | WatchOptionsT<StateT, any>) => {
-    const id = crypto.randomUUID();
-    
+    const id = crypto.randomUUID()
+
     if (typeof reactionOrOptions === 'function') {
       // Simple watcher with direct reaction
       this.watchers.set(id, {
         reaction: reactionOrOptions,
         previousValue: this.currentState
-      });
+      })
     } else {
       // Watcher with selector
-      const { selector, reaction } = reactionOrOptions;
-      const selectedValue = selector(this.currentState);
-      
+      const { selector, reaction } = reactionOrOptions
+      const selectedValue = selector(this.currentState)
+
       this.watchers.set(id, {
         selector,
         reaction,
         previousValue: selectedValue
-      });
+      })
     }
-    
+
     // Return unsubscribe function
     return () => {
-      this.watchers.delete(id);
-    };
+      this.watchers.delete(id)
+    }
   }
 
   constructor(initialState: StateT) {
@@ -325,20 +361,21 @@ export class DatassStore<StateT> {
     return () => this.unsubscribe(subscriber.id)
   }
 
-  replaceState = (newStateOrUpdater: StateT | ((draft: StateT) => void | StateT)) => {
-    let newState: StateT;
-    if (typeof newStateOrUpdater === 'function') {
-      newState = produce(this.currentState, newStateOrUpdater as (draft: StateT) => void | StateT);
-    } else {
-      newState = newStateOrUpdater;
+  replaceState = (newStateOrUpdater: StateT | DraftFnT<StateT>) => {
+    const isFunction = typeof newStateOrUpdater === 'function'
+    let newState: StateT
+
+    if (isFunction) {
+      const drafter = newStateOrUpdater as DraftFnT<StateT>
+      newState = produce(this.currentState, drafter)
     }
 
-    // Skip update if state hasn't changed
-    if (newState === this.currentState) return;
-
-    const oldState = this.currentState;
-    this.previousState = this.currentState;
-    this.currentState = newState;
+    if (!isFunction) newState = newStateOrUpdater
+    // no update if state hasn't changed
+    if (newState === this.currentState) return
+    const oldState = this.currentState
+    this.previousState = this.currentState
+    this.currentState = newState
 
     // Notify all subscribers about the state change
     this.subscribers.forEach((subscriber) => {
@@ -356,24 +393,24 @@ export class DatassStore<StateT> {
         subscriber.previousValue = newState
       }
     })
-  
+
     // Notify all watchers about the state change
     this.watchers.forEach((watcher, id) => {
       if (watcher.selector) {
         // For watchers with selectors
-        const newSelectedValue = watcher.selector(newState);
-        const oldSelectedValue = watcher.previousValue;
-        
+        const newSelectedValue = watcher.selector(newState)
+        const oldSelectedValue = watcher.previousValue
+
         if (newSelectedValue !== oldSelectedValue) {
-          watcher.reaction(oldSelectedValue, newSelectedValue);
-          watcher.previousValue = newSelectedValue;
+          watcher.reaction(oldSelectedValue, newSelectedValue)
+          watcher.previousValue = newSelectedValue
         }
       } else {
         // For watchers tracking the full state
-        watcher.reaction(oldState, newState);
-        watcher.previousValue = newState;
+        watcher.reaction(oldState, newState)
+        watcher.previousValue = newState
       }
-    });
+    })
   }
 }
 

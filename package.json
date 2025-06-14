@@ -1,6 +1,6 @@
 {
   "name": "datass",
-  "version": "1.1.0-beta.2",
+  "version": "1.1.0-beta.3",
   "description": "datass is a React state management library with focus on DX.",
   "homepage": "https://github.com/tasteee/datass#readme",
   "type": "module" ,

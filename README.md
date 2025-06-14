@@ -1,89 +1,136 @@
 ![DATASS](/logo.svg)
 
-🦇 Data Super Store ("dataSS" for short) is a state management library for React that focuses on developer experience. It is simple, flexible, lightweight, and it gives you all the power of sophisticated state management with none of the complexity.
+🦇 React stores. Local and global. DX foxused API. TypeScript first. Simple as hell. Capable as fuck.
 
-- **Simple API**: Intuitive methods that just work
-- **Zero Configuration**: No providers, no complex setup
-- **Flexible**: Works with any React app structure
-- **Type-Safe**: Built with TypeScript for robust typing
-- **Optimized**: Only re-renders when necessary
-- **Extensible**: Customizable with middleware
-- **Tiny**: Small bundle size with minimal dependencies
-
-## Installation
+Install datass.
 
 ```
-npm install datass
-# or
+npm add datass
 yarn add datass
-# or
 pnpm add datass
-# or
-bun install datass
+bun add datass
 ```
 
-## Easy as hell.
+Import datass.
 
 ```tsx
-import { datass } from 'datass'
+import { datass, useDatass } from 'datass'
 
-const $numberStore = datass.number(100)
-const $stringStore = datass.string('foo')
-const $booleanStore = datass.boolean(false)
-const $arrayStore = datass.array([0, 1, 2])
-const $objectStore = datass.object({ username: 'tasteink' })
+// public store.
+const $me = datass.object({ name: 'tasteink' })
 
-$numberStore.set(200)
-$numberStore.state // 200
-$numberStore.set.add(50)
-$numberStore.state // 250
-$numberStore.set.subtract(25)
-$numberStore.state // 225
-$numberStore.set.reset()
-$numberStore.state // 100
-$numberStore.use() // 100
-$numberStore.use((state) => state * 10) // 1000
+const MyComponent = () => {
+  // private store.
+  const keystrokes = useDatass.number(0)
+  const name = $me.use.lookup('name')
 
-$stringStore.set('bar')
-$stringStore.state // 'bar'
-$stringStore.set.reset()
-$stringStore.state // 'foo'
-$stringStore.use() // 'foo'
-$stringStore.use((state) => state.toUpperCase()) // 'FOO'
+  const onChange = (event) => {
+    keystrokes.set.add(1)
+    $me.set.lookup('name', event.target.value)
+  }
 
-$booleanStore.set(false)
-$booleanStore.state // false
-$booleanStore.toggle()
-$booleanStore.state // true
-$booleanStore.set.reset()
-$booleanStore.state // true
-$booleanStore.use() // true
-
-const someOtherBoolean = false
-$booleanStore.use((state) => state === someOtherBoolean) // false
-
-$arrayStore.set([10, 11, 12])
-$arrayStore.state // [10, 11, 12]
-$arrayStore.set.append(13)
-$arrayStore.state // [10, 11, 12, 13]
-$arrayStore.set.prepend(9)
-$arrayStore.state // [9, 10, 11, 12, 13]
-$arrayStore.set.reset()
-$arrayStore.state // [0, 1, 2]
-$arrayStore.use() // [0, 1, 2]
-$arrayStore.use((state) => state.reverse()[0]) // 2
-$arrayStore.use.find((value) => value > 1) // 2
-$arrayStore.use.filter((value) => value > 0) // [1, 2]
-
-$objectStore.set({ age: 123 })
-$objectStore.state // { username: 'tasteink', age: 123 }
-$objectStore.set.replace({ username: 'rokki' })
-$objectStore.state // { username: 'rokki' }
-$objectStore.set.reset()
-$objectStore.state // { username: 'tasteink' }
-$objectStore.use() // { username: 'tasteink' }
-$objectStore.use((state) => state.username) // 'tasteink'
+  return (
+    <>
+      <input value={name}>
+      <p>name: {name}</p>
+      <p>keystrokes: {keystrokes.state}</p>
+    </>
+  )
+}
 ```
+
+Create and use a datass.number store.
+
+```ts
+const $num = datass.number(100)
+
+$num.set(200)
+$num.state // 200
+$num.set.add(50)
+$num.state // 250
+$num.set.subtract(25)
+$num.state // 225
+$num.set.reset()
+$num.state // 100
+$num.use() // 100
+$num.use((state) => state * 10) // 1000
+
+// Inside of a component you can create a piece
+// of local datass state:
+```
+
+Create and use a datass.string store.
+
+```ts
+const $str = datass.string('foo')
+
+$str.set('bar')
+$str.state // 'bar'
+$str.set.reset()
+$str.state // 'foo'
+$str.use() // 'foo'
+$str.use((state) => state.toUpperCase()) // 'FOO'
+```
+
+Create and use a datass.boolean store.
+
+```ts
+const $bool = datass.boolean(true)
+
+$bool.set(false)
+$bool.state // false
+$bool.toggle()
+$bool.state // true
+$bool.set.reset()
+$bool.state // true
+$bool.use() // true
+$bool.use((state) => typeof value) // 'boolean'
+```
+
+Create and use datass.array store.
+
+```ts
+const $arr = datass.array<number>([0, 1, 2])
+
+$arr.set([10, 11, 12])
+$arr.state // [10, 11, 12]
+$arr.set.append(13)
+$arr.state // [10, 11, 12, 13]
+$arr.set.prepend(9)
+$arr.state // [9, 10, 11, 12, 13]
+$arr.set.append(1, 2) // append or prepend multiple
+$arr.state // [9, 10, 11, 12, 13, 1, 2]
+$arr.set.reset()
+$arr.state // [0, 1, 2]
+$arr.use() // [0, 1, 2]
+$arr.use((state) => state.reverse()[0]) // 2
+$arr.use.find((value) => value > 1) // 2
+$arr.use.filter((value) => value > 0) // [1, 2]
+$arr.use.map(arr =>  arr > 0) // [false, true, true]
+```
+
+Create and use a datass.object store.
+
+```ts
+const $obj = datass.object({ name: 'tasteink' })
+
+// NOTE: For object stores, builds the next state
+// by merging the object you provide into the existing
+// state object. To fully replace the existing state,
+// reach for `yourStore.set.replace({ ... })`
+
+$obj.set({ age: 123 })
+$obj.set.reset()
+$obj.set.replace({ name: 'rokki', numbers: [0, 1, 2] })
+$obj.set.lookup('name', 'tasteink')
+$obj.set.lookup('numbers.2', 99)
+$obj.use() // { name: 'tasteink', numbers: [0, 1, 99 ]}
+$obj.use((state) => state.name) // 'tasteink'
+$obj.use.lookup('name') // 'tasteink'
+$obj.use.lookup('numbers.2') // 99
+```
+
+
 
 # 🤍 Hey, real quick...
 
@@ -91,130 +138,6 @@ $objectStore.use((state) => state.username) // 'tasteink'
 
 # [Please pleaseee help if you can.](https://cash.app/$rokkiiii) 🤍🤍🤍
 
-## Store Types
-
-### String Store
-
-```tsx
-const $userName = datass.string('guest')
-
-// Set a new value
-$userName.set('tasteink')
-
-// Reset to initial value
-$userName.set.reset()
-
-// Get current value
-console.log($userName.state) // 'guest'
-
-// Use in components
-function UserGreeting() {
-  $userName.use()
-  return <p>Hello, {$userName.state}</p>
-}
-```
-
-### Number Store
-
-```tsx
-const $clickCount = datass.number(0)
-
-// Increment
-$clickCount.set($clickCount.state + 1)
-
-// Add to current value
-$clickCount.set.add(5)
-
-// Subtract from current value
-$clickCount.set.subtract(2)
-
-// Reset to initial value
-$clickCount.set.reset()
-
-// Get current value
-console.log($clickCount.state) // 0
-
-// Use in components
-function ClickCounter() {
-  const count = $clickCount.use()
-  const add1 = () => $isDarkMode.set.add(1)
-
-  return <button onClick={add1}>Clicks: {count}</button>
-}
-```
-
-### Boolean Store
-
-```tsx
-const $isDarkMode = datass.boolean(false)
-
-// Set directly
-$isDarkMode.set(true)
-
-// Toggle value
-$isDarkMode.set.toggle()
-
-// Reset to initial value
-$isDarkMode.set.reset()
-
-// Get current value
-console.log($isDarkMode.state) // false
-
-// Use in components
-function ThemeToggle() {
-  const isDark = $isDarkMode.use()
-  const modeText = isDark ? 'light' : 'dark'
-
-  return <button onClick={$isDarkMode.set.toggle}>Switch to {modeText} mode</button>
-}
-```
-
-### Array Store
-
-```tsx
-type TodoT = { id: number; label: string; isComplete: boolean }
-
-const initialTodos: TodoT[] = [
-  { id: 1, label: 'Learn datass', isComplete: true },
-  { id: 2, label: 'Build amazing app', isComplete: false }
-]
-
-const $todos = datass.array > TodoT > initialTodos
-
-// Replace entire array
-$todos.set([{ id: 3, label: 'New todo', isComplete: false }])
-
-// Add item to end
-$todos.set.append({ id: 4, label: 'Another todo', isComplete: false })
-
-// Add item to beginning
-$todos.set.prepend({ id: 0, label: 'First todo', isComplete: false })
-
-// Add multiple items to end
-$todos.set.append({ id: 5, label: 'Fifth todo', isComplete: false }, { id: 6, label: 'Sixth todo', isComplete: false })
-
-// Get current value
-console.log($todos.state) // Array of todos
-
-// Use in components
-function TodoList() {
-  const todos = $todos.use()
-
-  return (
-    <div>
-      {todos.map((todo) => (
-        <p>{todo.label}</p>
-      ))}
-    </div>
-  )
-}
-
-// Array stores also have convenience methods
-// for selecting derived state.
-
-const completedTodos = $todos.use.filter((todo) => todo.isComplete)
-const firstIncompleteTodo = $todos.use.find((todo) => !todo.isComplete)
-```
 
 ## Immer-powered Updates
 
@@ -266,8 +189,8 @@ const loggingMiddleware = (store) => {
 }
 
 // Apply middleware:
-const customDatass = datass.withMiddleware(loggingMiddleware)
-const $settings = customDatass.object({ theme: 'light', notifications: true })
+const ss = datass.withMiddleware(loggingMiddleware)
+const $settings = ss.object({ theme: 'light', notifications: true })
 ```
 
 #### undoRedo middleware

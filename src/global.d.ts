@@ -1,10 +1,10 @@
 import { DatassStore } from './datass'
 
-export type WatchReactionT<T> = (oldValue: T, newValue: T) => void;
+export type WatchReactionT<T> = (oldValue: T, newValue: T) => void
 
 export interface WatchOptionsT<T, S = T> {
-  selector: (state: T) => S;
-  reaction: (oldValue: S, newValue: S) => void;
+  selector: (state: T) => S
+  reaction: (oldValue: S, newValue: S) => void
 }
 
 // Base setter type with common methods
@@ -45,6 +45,7 @@ export type ArraySetterT<T> = BaseSetterT<T[]> & {
 // Object Store Types
 export type ObjectSetterT<T extends object> = {
   (value: Partial<T>): void
+  lookup: (path: string, value: any) => void
   replace: (value: T) => void
   reset: () => void
   byAsync: (asyncUpdater: AsyncSetterT<T>) => Promise<boolean>
@@ -56,8 +57,13 @@ export type BaseUseT<T> = {
   (selector?: (state: T) => any): any
 }
 
+export type ObjectUseT<T> = BaseUseT<T> & {
+  lookup: <ValueT>(path: string, fallback?: ValueT) => ValueT
+}
+
 // Array use type with additional methods
 export type ArrayUseT<T> = BaseUseT<T[]> & {
+  map: <V>(mapper: (item: T) => V) => V[]
   find: (finder: (item: T) => boolean) => T | undefined
   filter: (filter: (item: T) => boolean) => T | undefined
 }
@@ -68,7 +74,7 @@ export type PreparedStoreT<DataT, SetterType = BaseSetterT<DataT>, UseType = Bas
   use: UseType
   state: DataT
   store: DatassStore<DataT>
-  watch: (reactionOrOptions: WatchReactionT<DataT> | WatchOptionsT<DataT, any>) => () => void;
+  watch: (reactionOrOptions: WatchReactionT<DataT> | WatchOptionsT<DataT, any>) => () => void
 }
 
 // Specific prepared store types
