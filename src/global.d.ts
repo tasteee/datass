@@ -78,11 +78,11 @@ export type PreparedStoreT<DataT, SetterType = BaseSetterT<DataT>, UseType = Bas
 }
 
 // Specific prepared store types
-export type PreparedBooleanStoreT = PreparedStoreT<boolean, BooleanSetterT>
-export type PreparedNumberStoreT = PreparedStoreT<number, NumberSetterT>
-export type PreparedStringStoreT<T extends string = string> = PreparedStoreT<T, StringSetterT<T>>
+export type PreparedBooleanStoreT = PreparedStoreT<boolean, BooleanSetterT, BaseUseT<boolean>>
+export type PreparedNumberStoreT = PreparedStoreT<number, NumberSetterT, BaseUseT<number>>
+export type PreparedStringStoreT<T extends string = string> = PreparedStoreT<T, StringSetterT<T>, BaseUseT<string>>
 export type PreparedArrayStoreT<T> = PreparedStoreT<T[], ArraySetterT<T>, ArrayUseT<T>>
-export type PreparedObjectStoreT<T extends object> = PreparedStoreT<T, ObjectSetterT<T>>
+export type PreparedObjectStoreT<T extends object> = PreparedStoreT<T, ObjectSetterT<T>, ObjectUseT<T>>
 
 // Middleware types
 export type MiddlewareFunctionT = <OptionsT>(options: OptionsT) => InnerMiddlewareFunctionT

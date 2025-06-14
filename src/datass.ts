@@ -245,13 +245,13 @@ export class Datass {
       })
     }
 
-    const use = store.use as ObjectUseT<DataT>
+    const use = store.use as BaseUseT<DataT> as ObjectUseT<DataT>
 
     use.lookup = <ValueT>(path: string, fallback?: ValueT) => {
       return use((state) => safeGet(state, path, fallback))
     }
 
-    const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>> = {
+    const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>, ObjectUseT<DataT>> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
       use,
