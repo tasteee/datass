@@ -2,44 +2,13 @@
 
 🦇 React stores. Local and global. DX foxused API. TypeScript first. Simple as hell. Capable as fuck.
 
-Install datass.
-
 ```
 npm add datass
-yarn add datass
-pnpm add datass
-bun add datass
 ```
 
-Import datass.
+## Let's do it.
 
-```tsx
-import { datass, useDatass } from 'datass'
-
-// public store.
-const $me = datass.object({ name: 'tasteink' })
-
-const MyComponent = () => {
-  // private store.
-  const keystrokes = useDatass.number(0)
-  const name = $me.use.lookup('name')
-
-  const onChange = (event) => {
-    keystrokes.set.add(1)
-    $me.set.lookup('name', event.target.value)
-  }
-
-  return (
-    <>
-      <input value={name}>
-      <p>name: {name}</p>
-      <p>keystrokes: {keystrokes.state}</p>
-    </>
-  )
-}
-```
-
-Create and use a datass.number store.
+### Global Stores
 
 ```ts
 const $num = datass.number(100)
@@ -55,13 +24,6 @@ $num.state // 100
 $num.use() // 100
 $num.use((state) => state * 10) // 1000
 
-// Inside of a component you can create a piece
-// of local datass state:
-```
-
-Create and use a datass.string store.
-
-```ts
 const $str = datass.string('foo')
 
 $str.set('bar')
@@ -70,11 +32,7 @@ $str.set.reset()
 $str.state // 'foo'
 $str.use() // 'foo'
 $str.use((state) => state.toUpperCase()) // 'FOO'
-```
 
-Create and use a datass.boolean store.
-
-```ts
 const $bool = datass.boolean(true)
 
 $bool.set(false)
@@ -85,11 +43,7 @@ $bool.set.reset()
 $bool.state // true
 $bool.use() // true
 $bool.use((state) => typeof value) // 'boolean'
-```
 
-Create and use datass.array store.
-
-```ts
 const $arr = datass.array<number>([0, 1, 2])
 
 $arr.set([10, 11, 12])
@@ -106,13 +60,10 @@ $arr.use() // [0, 1, 2]
 $arr.use((state) => state.reverse()[0]) // 2
 $arr.use.find((value) => value > 1) // 2
 $arr.use.filter((value) => value > 0) // [1, 2]
-$arr.use.map(arr =>  arr > 0) // [false, true, true]
-```
+$arr.use.map((arr) => arr > 0) // [false, true, true]
 
-Create and use a datass.object store.
-
-```ts
-const $obj = datass.object({ name: 'tasteink' })
+type MyObjectT = { name: string; age?: number; numbers?: number[] }
+const $obj = datass.object<MyObjectT>({ name: 'tasteink' })
 
 // NOTE: For object stores, builds the next state
 // by merging the object you provide into the existing
@@ -130,7 +81,22 @@ $obj.use.lookup('name') // 'tasteink'
 $obj.use.lookup('numbers.2') // 99
 ```
 
+### Local Stores
 
+```ts
+import { useDatass } from 'datass'
+
+const Component = () => {
+  const num = useDatass.number(250)
+  const str = useDatass.string('hello')
+  const bool = useDatass.boolean(false)
+  const arr = useDatass.array([0, 99, 122])
+  const obj = useDatass.object({ foo: 'bar' })
+
+  // These stores have the exact same APIs
+  // except you do not .use() them.
+}
+```
 
 # 🤍 Hey, real quick...
 
@@ -138,8 +104,7 @@ $obj.use.lookup('numbers.2') // 99
 
 # [Please pleaseee help if you can.](https://cash.app/$rokkiiii) 🤍🤍🤍
 
-
-## Immer-powered Updates
+## Immer-powered Object Store Updates
 
 ```tsx
 const $user = datass.object({
@@ -148,7 +113,6 @@ const $user = datass.object({
   skills: ['JavaScript', 'React']
 })
 
-// Update multiple properties with ease using Immer drafts:
 $user.set.by((draft) => {
   draft.name = draft.name.toUpperCase()
   draft.age += 1
@@ -209,4 +173,3 @@ $myStore.set.redo()
 ## TODO
 
 - [ ] Improve documentation on custom middleware.
-- [ ] Provide component-level state management hooks
