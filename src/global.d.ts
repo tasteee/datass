@@ -40,6 +40,7 @@ export type StringSetterT<T extends string = string> = {
 export type ArraySetterT<T> = BaseSetterT<T[]> & {
   append: (...items: T[]) => void
   prepend: (...items: T[]) => void
+  lookup: (path: string | number, value: any) => void
 }
 
 // Object Store Types
@@ -66,6 +67,7 @@ export type ArrayUseT<T> = BaseUseT<T[]> & {
   map: <V>(mapper: (item: T) => V) => V[]
   find: (finder: (item: T) => boolean) => T | undefined
   filter: (filter: (item: T) => boolean) => T | undefined
+  lookup: <ValueT>(path: string | number, fallback?: ValueT) => ValueT | T
 }
 
 // Generic prepared store type

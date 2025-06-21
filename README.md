@@ -56,7 +56,8 @@ $arr.set.append(1, 2) // append or prepend multiple
 $arr.state // [9, 10, 11, 12, 13, 1, 2]
 $arr.set.reset()
 $arr.state // [0, 1, 2]
-$arr.use() // [0, 1, 2]
+$arr.set.lookup(3, 3) // state[3] = 3
+$arr.use() // [0, 1, 2, 3]
 $arr.use((state) => state.reverse()[0]) // 2
 $arr.use.find((value) => value > 1) // 2
 $arr.use.filter((value) => value > 0) // [1, 2]
@@ -95,6 +96,20 @@ const Component = () => {
 
   // These stores have the exact same APIs
   // except you do not .use() them.
+  const handleSomething = () => {
+    num.set(120)
+    num.add(10)
+    num.state // 130
+    str.set(str.state.toUpperCase())
+    str.state // 'HELLO'
+    bool.toggle()
+    bool.state // true
+    arr.set.append(222)
+    arr.set.prepend(123)
+    arr.set.lookup('1', 55)
+    arr.state // [123, 55, 99, 122, 222]
+    obj.set({ ...etc }) // it is all the same!
+  }
 }
 ```
 

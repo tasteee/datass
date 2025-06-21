@@ -176,6 +176,19 @@ export class Datass {
 
     const use = store.use as unknown as ArrayUseT<DataT>
 
+    set.lookup = (path: string, value) => {
+      const stringPath = typeof path === 'number' ? `${path}` : path
+
+      store.replaceState((draft) => {
+        safeSet(draft, stringPath, value)
+      })
+    }
+
+    use.lookup = <ValueT>(path: string, fallback?: ValueT) => {
+      const stringPath = typeof path === 'number' ? `${path}` : path
+      return use((state) => safeGet(state, stringPath, fallback))
+    }
+
     // TODO: test $array.use.find(...)
     use.find = <ValueT>(finder: (item: DataT) => boolean) => {
       return use((state: DataT[]) => {
