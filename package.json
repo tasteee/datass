@@ -1,6 +1,6 @@
 {
   "name": "datass",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "DX focused, TS first, easy af global and local React state.",
   "homepage": "https://github.com/tasteee/datass#readme",
   "type": "module",
