@@ -113,12 +113,6 @@ const Component = () => {
 }
 ```
 
-# 🤍 Hey, real quick...
-
-🙏🤍🖤 I have almost a decade of experience in software, but my career, and subsequently my life, came crashing down when I was laid off in 2023 and fell into the recently-collapsed software job market. I am struggling quite a bit to survive right now.
-
-# [Please pleaseee help if you can.](https://cash.app/$rokkiiii) 🤍🤍🤍
-
 ## Immer-powered Object Store Updates
 
 ```tsx
