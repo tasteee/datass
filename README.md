@@ -1,6 +1,6 @@
 ![DATASS](/logo.svg)
 
-🦇 React stores. Local and global. DX foxused API. TypeScript first. Simple as hell. Capable as fuck.
+data-superstore (datass) 🦇 React stores. Local and global. DX foxused API. TypeScript first. Simple as hell. Capable as fuck.
 
 ```
 npm add datass
