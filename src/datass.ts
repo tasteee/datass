@@ -5,8 +5,6 @@ import {
   StringSetterT,
   ArraySetterT,
   ObjectSetterT,
-  BaseUseT,
-  ArrayUseT,
   PreparedStoreT,
   PreparedBooleanStoreT,
   PreparedNumberStoreT,
@@ -18,23 +16,13 @@ import {
   AsyncSetterT,
   DrafterT,
   WatchReactionT,
-  WatchOptionsT,
-  ObjectUseT
+  WatchOptionsT
 } from './global'
 
-import { useState, useEffect, useMemo } from 'react'
 import { produce } from 'immer'
 import { middleware } from './middleware'
 import safeGet from 'just-safe-get'
 import safeSet from 'just-safe-set'
-
-const createId = () => {
-  return crypto.randomUUID()
-}
-
-const useId = () => {
-  return useMemo(createId, [])
-}
 
 const setFromEventTargetValue = (set: (value: any) => void) => (event: Event) => {
   const target = event?.target as HTMLInputElement
@@ -82,19 +70,16 @@ export class Datass {
     set.by = createSetBy<boolean>(store)
     set.reset = () => set(store.initialState)
 
-    const use = store.use as BaseUseT<boolean>
-
     const preparedStore: PreparedStoreT<boolean, BooleanSetterT> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
-      use,
       store,
       get state() {
         return store.state
       }
     }
 
-    const withMiddlewares = this.applyMiddlewares<boolean, BooleanSetterT, BaseUseT<boolean>>(preparedStore)
+    const withMiddlewares = this.applyMiddlewares<boolean, BooleanSetterT>(preparedStore)
     return withMiddlewares as PreparedBooleanStoreT
   }
 
@@ -110,19 +95,16 @@ export class Datass {
     set.by = createSetBy<number>(store)
     set.reset = () => set(store.initialState)
 
-    const use = store.use as BaseUseT<number>
-
     const preparedStore: PreparedStoreT<number, NumberSetterT> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
-      use,
       store,
       get state() {
         return store.state
       }
     }
 
-    const withMiddlewares = this.applyMiddlewares<number, NumberSetterT, BaseUseT<number>>(preparedStore)
+    const withMiddlewares = this.applyMiddlewares<number, NumberSetterT>(preparedStore)
     return withMiddlewares as PreparedNumberStoreT
   }
 
@@ -135,19 +117,16 @@ export class Datass {
     set.by = createSetBy<DataT>(store)
     set.reset = () => set(store.initialState)
 
-    const use = store.use as BaseUseT<DataT>
-
     const preparedStore: PreparedStoreT<DataT, StringSetterT> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
-      use,
       store,
       get state() {
         return store.state
       }
     }
 
-    const withMiddlewares = this.applyMiddlewares<string, StringSetterT, BaseUseT<string>>(preparedStore)
+    const withMiddlewares = this.applyMiddlewares<string, StringSetterT>(preparedStore)
     return withMiddlewares as PreparedStringStoreT
   }
 
@@ -174,8 +153,6 @@ export class Datass {
     set.by = createSetBy<DataT[]>(store)
     set.reset = () => set(store.initialState)
 
-    const use = store.use as unknown as ArrayUseT<DataT>
-
     set.lookup = (path: string, value) => {
       const stringPath = typeof path === 'number' ? `${path}` : path
 
@@ -184,39 +161,16 @@ export class Datass {
       })
     }
 
-    use.lookup = <ValueT>(path: string, fallback?: ValueT) => {
-      const stringPath = typeof path === 'number' ? `${path}` : path
-      return use((state) => safeGet(state, stringPath, fallback))
-    }
-
-    // TODO: test $array.use.find(...)
-    use.find = <ValueT>(finder: (item: DataT) => boolean) => {
-      return use((state: DataT[]) => {
-        const result = state.find(finder)
-        return result
-      })
-    }
-
-    // TODO: test $array.use.filter(...)
-    use.filter = (filter: (item: DataT) => boolean) => {
-      return use((state: DataT[]) => state.filter(filter))
-    }
-
-    use.map = <ItemT>(mapper: (item: DataT) => ItemT) => {
-      return use((state: DataT[]) => state.map(mapper))
-    }
-
-    const preparedStore: PreparedStoreT<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>> = {
+    const preparedStore: PreparedStoreT<DataT[], ArraySetterT<DataT>> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
-      use,
       store,
       get state() {
         return store.state
       }
     }
 
-    const withMiddlewares = this.applyMiddlewares<DataT[], ArraySetterT<DataT>, ArrayUseT<DataT>>(preparedStore)
+    const withMiddlewares = this.applyMiddlewares<DataT[], ArraySetterT<DataT>>(preparedStore)
     return withMiddlewares as PreparedArrayStoreT<DataT>
   }
 
@@ -258,23 +212,16 @@ export class Datass {
       })
     }
 
-    const use = store.use as BaseUseT<DataT> as ObjectUseT<DataT>
-
-    use.lookup = <ValueT>(path: string, fallback?: ValueT) => {
-      return use((state) => safeGet(state, path, fallback))
-    }
-
-    const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>, ObjectUseT<DataT>> = {
+    const preparedStore: PreparedStoreT<DataT, ObjectSetterT<DataT>> = {
       watch: (reactionOrOptions) => store.watch(reactionOrOptions),
       set,
-      use,
       store,
       get state() {
         return store.state
       }
     }
 
-    const withMiddlewares = this.applyMiddlewares<DataT, ObjectSetterT<DataT>, BaseUseT<DataT>>(preparedStore)
+    const withMiddlewares = this.applyMiddlewares<DataT, ObjectSetterT<DataT>>(preparedStore)
     return withMiddlewares as PreparedObjectStoreT<DataT>
   }
 
@@ -284,12 +231,10 @@ export class Datass {
     return _datass
   }
 
-  private applyMiddlewares<DataT, SetT extends BaseSetterT<DataT>, UseT>(
-    preparedStore: PreparedStoreT<DataT, SetT, UseT>
-  ): PreparedStoreT<DataT, SetT, UseT> {
+  private applyMiddlewares<DataT, SetT extends BaseSetterT<DataT>>(preparedStore: PreparedStoreT<DataT, SetT>): PreparedStoreT<DataT, SetT> {
     return this.stagedMiddleware.reduce((final, middleware) => {
       // @ts-ignore
-      const storeWithMiddlewareApplied = middleware(final) as PreparedStoreT<DataT, SetT, UseT>
+      const storeWithMiddlewareApplied = middleware(final) as PreparedStoreT<DataT, SetT>
       return storeWithMiddlewareApplied
     }, preparedStore)
   }
@@ -346,23 +291,6 @@ export class DatassStore<StateT> {
 
   public get state() {
     return this.currentState
-  }
-
-  use = (selector?: (state: StateT) => any) => {
-    const id = useId()
-    const initialValue = selector ? selector(this.state) : this.state
-    const [value, setValue] = useState(initialValue)
-
-    useEffect(() => {
-      return this.subscribe({
-        derive: selector,
-        previousValue: value,
-        update: setValue,
-        id
-      })
-    }, [id, selector])
-
-    return value
   }
 
   unsubscribe = (id: string) => {

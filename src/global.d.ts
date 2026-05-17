@@ -73,22 +73,39 @@ export type ArrayUseT<T> = BaseUseT<T[]> & {
 // Generic prepared store type
 export type PreparedStoreT<DataT, SetterType = BaseSetterT<DataT>, UseType = BaseUseT<DataT>> = {
   set: SetterType
-  use: UseType
+  use?: UseType
   state: DataT
   store: DatassStore<DataT>
   watch: (reactionOrOptions: WatchReactionT<DataT> | WatchOptionsT<DataT, any>) => () => void
 }
 
-// Specific prepared store types
-export type PreparedBooleanStoreT = PreparedStoreT<boolean, BooleanSetterT, BaseUseT<boolean>>
-export type PreparedNumberStoreT = PreparedStoreT<number, NumberSetterT, BaseUseT<number>>
-export type PreparedStringStoreT<T extends string = string> = PreparedStoreT<T, StringSetterT<T>, BaseUseT<string>>
-export type PreparedArrayStoreT<T> = PreparedStoreT<T[], ArraySetterT<T>, ArrayUseT<T>>
-export type PreparedObjectStoreT<T extends object> = PreparedStoreT<T, ObjectSetterT<T>, ObjectUseT<T>>
+// Framework-agnostic prepared store types
+export type PreparedBooleanStoreT = PreparedStoreT<boolean, BooleanSetterT>
+export type PreparedNumberStoreT = PreparedStoreT<number, NumberSetterT>
+export type PreparedStringStoreT<T extends string = string> = PreparedStoreT<T, StringSetterT<T>>
+export type PreparedArrayStoreT<T> = PreparedStoreT<T[], ArraySetterT<T>>
+export type PreparedObjectStoreT<T extends object> = PreparedStoreT<T, ObjectSetterT<T>>
+
+// React-enabled prepared store types
+export type ReactPreparedBooleanStoreT = PreparedStoreT<boolean, BooleanSetterT, BaseUseT<boolean>> & {
+  use: BaseUseT<boolean>
+}
+export type ReactPreparedNumberStoreT = PreparedStoreT<number, NumberSetterT, BaseUseT<number>> & {
+  use: BaseUseT<number>
+}
+export type ReactPreparedStringStoreT<T extends string = string> = PreparedStoreT<T, StringSetterT<T>, BaseUseT<string>> & {
+  use: BaseUseT<string>
+}
+export type ReactPreparedArrayStoreT<T> = PreparedStoreT<T[], ArraySetterT<T>, ArrayUseT<T>> & {
+  use: ArrayUseT<T>
+}
+export type ReactPreparedObjectStoreT<T extends object> = PreparedStoreT<T, ObjectSetterT<T>, ObjectUseT<T>> & {
+  use: ObjectUseT<T>
+}
 
 // Middleware types
 export type MiddlewareFunctionT = <OptionsT>(options: OptionsT) => InnerMiddlewareFunctionT
-export type InnerMiddlewareFunctionT = <DataT, SetT extends BaseSetterT<DataT>, UseT extends BaseUseT<DataT>>(
+export type InnerMiddlewareFunctionT = <DataT, SetT extends BaseSetterT<DataT>, UseT = BaseUseT<DataT>>(
   store: PreparedStoreT<DataT, SetT, UseT>
 ) => PreparedStoreT<DataT, SetT, UseT>
 

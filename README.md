@@ -8,6 +8,33 @@ npm add datass
 
 ## Let's do it.
 
+### Framework agnostic core + React adapter
+
+```ts
+import { datass } from 'datass'
+
+const $age = datass.number(99)
+$age.set(100)
+$age.state // 100
+```
+
+```ts
+import { datass } from 'datass/react'
+
+const $isCool = datass.boolean(false)
+$isCool.set(true)
+$isCool.use()
+```
+
+```ts
+import { datass as coreDatass } from 'datass'
+import { datass } from 'datass/react'
+
+const $count = coreDatass.number(0)
+datass.upgrade($count) // mutates and returns the same store reference
+$count.use()
+```
+
 ### Global Stores
 
 ```ts

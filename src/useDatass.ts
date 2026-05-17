@@ -1,5 +1,5 @@
 // src/useDatass.ts
-import { datass } from 'datass'
+import { datass } from './reactDatass'
 import { useMemo } from 'react'
 
 export const useDatass = (() => {
