@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, cleanup, screen } from '@testing-library/react'
-import { datass } from '../src/reactDatass'
+import { datass } from '../reactDatass'
 import * as React from 'react'
 import { StateObserver } from './helpers'
 

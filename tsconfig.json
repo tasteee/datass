@@ -7,9 +7,9 @@
     },
     "target": "ESNext",
     "useDefineForClassFields": true,
-    "module": "ESNext",
+    "module": "esnext",
     "lib": ["ESNext", "DOM"],
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "strict": false,
     "sourceMap": true,
     "resolveJsonModule": true,
@@ -24,6 +24,6 @@
     "declarationDir": "dist",
     "listEmittedFiles": true
   },
-  "include": ["src", "src/global.d.ts", "dist/index.d.ts", "test/dat.test.ts", "test/undoRedo.test.tsx"],
-  "exclude": ["**/*.test.ts", "node_modules", "test/**", ".history/**"]
+  "include": ["src", "src/global.d.ts", "dist/index.d.ts", "src/_test/dat.test.ts", "src/_test/undoRedo.test.tsx"],
+  "exclude": ["**/*.test.ts", "node_modules", "src/_test/**", ".history/**"]
 }

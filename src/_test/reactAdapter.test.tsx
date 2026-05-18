@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { render, act } from '@testing-library/react'
 import * as React from 'react'
-import { datass as coreDatass } from '../src/datass'
-import { datass as reactDatass } from '../src/reactDatass'
+import { datass as coreDatass } from '../datass'
+import { datass as reactDatass } from '../reactDatass'
 import { StateObserver } from './helpers'
 
 describe('react adapter', () => {

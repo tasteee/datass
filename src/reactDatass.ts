@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
 import safeGet from 'just-safe-get'
+import { useEffect, useMemo, useState } from 'react'
 import { Datass, DatassStore, datass as coreDatass } from './datass'
+
 import {
   ArrayUseT,
   BaseUseT,
@@ -108,6 +109,7 @@ type DatassReactT = ReturnType<typeof createReactDatass> & {
 const datass = createReactDatass(coreDatass) as DatassReactT
 
 export { datass }
+
 export type {
   PreparedStoreT,
   PreparedBooleanStoreT,
